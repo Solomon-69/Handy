@@ -70,6 +70,12 @@ jobs:
         with:
           version: 1.4.309.0
           cache: true
+      - name: Install SPIRV-Headers (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          C:\vcpkg\vcpkg.exe install spirv-headers:x64-windows
+          "CMAKE_PREFIX_PATH=C:\vcpkg\installed\x64-windows" | Out-File -FilePath $env:GITHUB_ENV -Append
       - run: bun install
       - name: Build
         shell: bash
