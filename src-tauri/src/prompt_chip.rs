@@ -2,8 +2,117 @@
 //! clear AI prompt (or clean it up) before pasting. Never runs on its own unless
 //! the person picked "Always".
 
-use crate::settings::PromptChipMode;
+use crate::settings::{self, PromptChipMode};
+use std::sync::mpsc::{self, Sender};
+use std::sync::Mutex;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter};
+
+/// Where the overlay's click goes while a choice is up.
+static PENDING: Mutex<Option<Sender<Choice>>> = Mutex::new(None);
+
+/// The person's pick on the chip.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Choice {
+    PasteAsIs,
+    TurnIntoPrompt,
+    CleanUp,
+}
+
+impl Choice {
+    fn parse(value: &str) -> Option<Self> {
+        match value {
+            "paste" => Some(Choice::PasteAsIs),
+            "prompt" => Some(Choice::TurnIntoPrompt),
+            "clean" => Some(Choice::CleanUp),
+            _ => None,
+        }
+    }
+}
+
+/// Overlay chip button -> the waiting paste thread.
+#[tauri::command]
+#[specta::specta]
+pub fn prompt_chip_choose(choice: String) -> Result<(), String> {
+    let choice = Choice::parse(&choice).ok_or_else(|| format!("Unknown choice '{choice}'"))?;
+    if let Some(tx) = PENDING.lock().map_err(|e| e.to_string())?.take() {
+        let _ = tx.send(choice);
+    }
+    Ok(())
+}
+
+/// Called on the paste thread just before pasting. Returns the text to paste:
+/// the dictation itself unless the person picked a rewrite (or chose Always).
+/// Blocks for at most CHIP_TIMEOUT_MS while the choice is up.
+pub fn resolve(app: &AppHandle, text: String) -> String {
+    let s = settings::get_settings(app);
+    let choice = match decide(s.prompt_chip_mode, s.prompt_chip_min_words, &text) {
+        ChipDecision::Paste => return text,
+        ChipDecision::RewriteNow => Choice::TurnIntoPrompt,
+        ChipDecision::Ask => ask(app, &text),
+    };
+    let _ = app.emit_to("recording_overlay", "prompt-chip-done", ());
+    let system = match choice {
+        Choice::PasteAsIs => return text,
+        Choice::TurnIntoPrompt => PROMPT_REWRITE_INSTRUCTION.to_string(),
+        Choice::CleanUp => cleanup_instruction(&s),
+    };
+    match rewrite(&system, &text) {
+        Ok(out) if !out.trim().is_empty() => out.trim().to_string(),
+        Ok(_) => text,
+        Err(err) => {
+            log::warn!("Prompt chip rewrite failed: {err}");
+            let _ = app.emit_to("recording_overlay", "prompt-chip-error", err);
+            text
+        }
+    }
+}
+
+fn ask(app: &AppHandle, text: &str) -> Choice {
+    let (tx, rx) = mpsc::channel();
+    if let Ok(mut slot) = PENDING.lock() {
+        *slot = Some(tx);
+    }
+    let _ = app.emit_to(
+        "recording_overlay",
+        "prompt-chip",
+        PromptChipEvent {
+            words: word_count(text) as u32,
+            timeout_ms: CHIP_TIMEOUT_MS as u32,
+        },
+    );
+    let choice = rx
+        .recv_timeout(Duration::from_millis(CHIP_TIMEOUT_MS))
+        .unwrap_or(Choice::PasteAsIs);
+    if let Ok(mut slot) = PENDING.lock() {
+        *slot = None;
+    }
+    choice
+}
+
+/// The existing "Improve Transcriptions" prompt, as a system instruction.
+fn cleanup_instruction(s: &settings::AppSettings) -> String {
+    s.post_process_prompts
+        .iter()
+        .find(|p| p.id == "default_improve_transcriptions")
+        .map(|p| p.prompt.replace("${output}", "(the user message)"))
+        .unwrap_or_else(|| {
+            "Clean this transcript: fix spelling, punctuation and capitals, remove filler words, keep the meaning and language. Do not answer it. Return only the cleaned text.".to_string()
+        })
+}
+
+#[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+fn rewrite(system: &str, text: &str) -> Result<String, String> {
+    if !crate::apple_intelligence::check_apple_intelligence_availability() {
+        return Err("Apple Intelligence is not available on this Mac".to_string());
+    }
+    crate::apple_intelligence::process_text_with_system_prompt(system, text, 0)
+}
+
+#[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+fn rewrite(_system: &str, _text: &str) -> Result<String, String> {
+    Err("Turn into a prompt needs Apple Intelligence on a Mac".to_string())
+}
 
 /// How long the choice stays up before "Paste as is" happens by itself.
 pub const CHIP_TIMEOUT_MS: u64 = 4000;
@@ -86,6 +195,14 @@ mod tests {
         let long = "word ".repeat(40);
         assert_eq!(decide(PromptChipMode::Ask, 40, &long), ChipDecision::Ask);
         assert_eq!(decide(PromptChipMode::Always, 40, &long), ChipDecision::RewriteNow);
+    }
+
+    #[test]
+    fn choices_parse() {
+        assert_eq!(Choice::parse("paste"), Some(Choice::PasteAsIs));
+        assert_eq!(Choice::parse("prompt"), Some(Choice::TurnIntoPrompt));
+        assert_eq!(Choice::parse("clean"), Some(Choice::CleanUp));
+        assert_eq!(Choice::parse("rm -rf"), None);
     }
 
     #[test]

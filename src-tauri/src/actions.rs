@@ -878,7 +878,10 @@ impl ShortcutAction for TranscribeAction {
                                         let owns_ui =
                                             || RECORDING_SESSION.load(Ordering::SeqCst) == session;
                                         let (outcome, notice) =
-                                            match utils::paste(final_text, ah_clone.clone()) {
+                                            match utils::paste(
+                                                crate::prompt_chip::resolve(&ah_clone, final_text),
+                                                ah_clone.clone(),
+                                            ) {
                                                 Ok(()) => {
                                                     debug!(
                                                         "Text pasted successfully in {:?}",

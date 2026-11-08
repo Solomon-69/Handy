@@ -133,6 +133,14 @@ async changeAppearanceSetting(key: string, value: string) : Promise<Result<null,
     else return { status: "error", error: e  as any };
 }
 },
+async promptChipChoose(choice: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("prompt_chip_choose", { choice }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async previewRecordingOverlay() : Promise<void> {
     await TAURI_INVOKE("preview_recording_overlay");
 },

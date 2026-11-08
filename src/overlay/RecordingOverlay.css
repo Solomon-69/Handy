@@ -482,3 +482,61 @@
 :root[data-accent]:not([data-accent="default"]) {
   --s-accent-soft: color-mix(in srgb, var(--s-accent) 20%, transparent);
 }
+
+/* "Turn into a prompt" choice: three quiet buttons in the pill, with a thin
+   countdown line; nothing picked = paste as is. */
+.scard.compact.cchip {
+  width: 256px;
+}
+.sbase.schip {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 6px;
+}
+.schip-b {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 14px;
+  font: 500 11.5px var(--s-font);
+  text-align: center;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--s-hair);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    transform 100ms ease;
+}
+.schip-b:hover {
+  background: var(--s-accent-soft);
+}
+.schip-b:active {
+  transform: scale(0.97);
+}
+.schip-b.primary {
+  color: #fff;
+  background: var(--s-accent);
+}
+.schip-timer {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 3px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--s-accent);
+  opacity: 0.45;
+  transform-origin: left center;
+  animation: schip-countdown linear forwards;
+}
+@keyframes schip-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}

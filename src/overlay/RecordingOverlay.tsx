@@ -92,6 +92,8 @@ const RecordingOverlay: React.FC = () => {
   // while overflowing, so the resting first line stays crisp flush under the pill.
   const [overflowing, setOverflowing] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  // "Turn into a prompt" choice, shown after a long dictation (prompt_chip.rs).
+  const [chip, setChip] = useState<{ timeout_ms: number } | null>(null);
   const [noticeWidth, setNoticeWidth] = useState<number>();
   const noticeProbeRef = useRef<HTMLSpanElement>(null);
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -150,6 +152,14 @@ const RecordingOverlay: React.FC = () => {
         setIsVisible(true);
       });
 
+      const unlistenChip = await listen<{ timeout_ms: number }>(
+        "prompt-chip",
+        (event) => setChip(event.payload),
+      );
+      const unlistenChipDone = await listen("prompt-chip-done", () =>
+        setChip(null),
+      );
+
       const unlistenAppearance = await listen("appearance-changed", async () => {
         const settings = await commands.getAppSettings();
         if (settings.status === "ok") applyAppearance(settings.data);
@@ -157,6 +167,7 @@ const RecordingOverlay: React.FC = () => {
 
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
+        setChip(null);
         setCaptureReady(false);
         // A notice keeps rendering while it fades. Dropping the transcript here
         // stops a later notice from showing an old session's text.
@@ -226,6 +237,8 @@ const RecordingOverlay: React.FC = () => {
         unlistenShow();
         unlistenHide();
         unlistenAppearance();
+        unlistenChip();
+        unlistenChipDone();
         unlistenReady();
         unlistenLevel();
         unlistenStream();
@@ -282,7 +295,7 @@ const RecordingOverlay: React.FC = () => {
     );
   }, [noticeTitle, isVisible]);
 
-  if (!isVisible && !shownNotice) return null;
+  if (!isVisible && !shownNotice && !chip) return null;
 
   // Re-pin when the user is within ~a line of the bottom; unpin otherwise.
   const handleStreamScroll = () => {
@@ -353,6 +366,25 @@ const RecordingOverlay: React.FC = () => {
       </div>
       <span className="swork-label">{label}</span>
       <div className="sbase-r">{showCancel && cancelBtn}</div>
+    </div>
+  );
+
+  const choose = (choice: "paste" | "prompt" | "clean") => {
+    setChip(null);
+    commands.promptChipChoose(choice);
+  };
+  const chipRow = chip && (
+    <div className="sbase schip">
+      <button className="schip-b" title={t("settings.appearance.promptChip.pasteAsIs")} onClick={() => choose("paste")}>
+        {t("overlay.chip.asIs")}
+      </button>
+      <button className="schip-b primary" title={t("settings.appearance.promptChip.turnIntoPrompt")} onClick={() => choose("prompt")}>
+        {t("overlay.chip.prompt")}
+      </button>
+      <button className="schip-b" title={t("settings.appearance.promptChip.cleanUp")} onClick={() => choose("clean")}>
+        {t("overlay.chip.clean")}
+      </button>
+      <span className="schip-timer" style={{ animationDuration: `${chip.timeout_ms}ms` }} />
     </div>
   );
 
@@ -433,7 +465,9 @@ const RecordingOverlay: React.FC = () => {
               </div>
             </div>
           </div>
-          {liveNotice
+          {chipRow
+            ? chipRow
+            : liveNotice
             ? noticeRow
             : working
               ? workingRow(
@@ -462,11 +496,13 @@ const RecordingOverlay: React.FC = () => {
     >
       {noticeProbe}
       <div
-        className={`scard compact ${working && isVisible ? "cworking" : ""} ${noticeClass}`}
+        className={`scard compact ${working && isVisible ? "cworking" : ""} ${chip ? "cchip" : ""} ${noticeClass}`}
         style={shownNotice ? { width: noticeWidth } : undefined}
         onClick={dismissNotice}
       >
-        {shownNotice
+        {chipRow
+          ? chipRow
+          : shownNotice
           ? noticeRow
           : working
             ? workingRow(workLabel, true)
