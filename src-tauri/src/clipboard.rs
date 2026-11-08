@@ -71,14 +71,16 @@ fn finish_clipboard_paste(
 }
 
 /// Longest wait before the old clipboard is put back after a paste.
-const MAX_RESTORE_DELAY_MS: u64 = 1500;
+const MAX_RESTORE_DELAY_MS: u64 = 3000;
+/// Shortest hold before restoring, so slow apps always read the dictation.
+const MIN_RESTORE_DELAY_MS: u64 = 1000;
 
 /// How long to wait after the paste keystroke before putting the old clipboard
 /// back. Busy apps (Electron, long chats) read the pasted data asynchronously,
 /// later for big pastes; putting the old item back before that read makes them
 /// paste the OLD clipboard instead of the dictation. Scales with text length.
 fn clipboard_restore_delay_ms(paste_delay_after_ms: u64, text_len: usize) -> u64 {
-    let scaled = 250 + (text_len as u64) / 20;
+    let scaled = MIN_RESTORE_DELAY_MS + (text_len as u64) / 10;
     paste_delay_after_ms.max(scaled.min(MAX_RESTORE_DELAY_MS))
 }
 
@@ -151,6 +153,11 @@ fn paste_via_clipboard(
         // Text takes priority so this path stays identical to the previous behavior;
         // an image is only restored when the clipboard held no text at all, which is
         // the case that used to silently wipe screenshots.
+        // If the person copied something new meanwhile, leave it alone.
+        let still_ours = clipboard.read_text().map(|t| t == text).unwrap_or(true);
+        if !still_ours {
+            return;
+        }
         if let Some(clipboard_content) = saved_text {
             let _ = write_text_to_clipboard(app_handle, &clipboard_content);
         } else if let Some(image) = saved_image {
@@ -904,6 +911,19 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
         "Using paste method: {:?}, delay before: {}ms, delay after: {}ms",
         paste_method, paste_delay_ms, paste_delay_after_ms
     );
+
+    // Never paste into the wrong app: bring the dictation's app back to the
+    // front, or keep the words on the clipboard and say so.
+    let pastes_by_keystroke = matches!(
+        paste_method,
+        PasteMethod::CtrlV | PasteMethod::CtrlShiftV | PasteMethod::ShiftInsert | PasteMethod::Direct
+    );
+    if pastes_by_keystroke
+        && crate::paste_guard::ensure_target_front() == crate::paste_guard::Ready::CopyOnly
+    {
+        write_text_to_clipboard(&app_handle, &text)?;
+        return Err("Your words are on the clipboard: press Cmd+V to paste them".to_string());
+    }
 
     // Perform the paste operation
     match paste_method {

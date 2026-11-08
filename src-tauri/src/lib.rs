@@ -26,6 +26,7 @@ mod overlay_placement;
 mod paste_last;
 mod prompt_chip;
 mod prompt_detect;
+mod paste_guard;
 mod spoken_format;
 mod voice_edits;
 mod paste_tx;

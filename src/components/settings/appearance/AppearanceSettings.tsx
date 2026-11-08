@@ -2,6 +2,7 @@ import React from "react";
 import { useTranslation } from "react-i18next";
 import { commands } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
+import { useModelStore } from "@/stores/modelStore";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
 import { ThemeSelector } from "../ThemeSelector";
@@ -13,6 +14,9 @@ const ACCENTS = Object.keys(ACCENT_COLORS);
 export const AppearanceSettings: React.FC = () => {
   const { t } = useTranslation();
   const { settings, updateSetting } = useSettings();
+  const showsWords = useModelStore(
+    (m) => m.models.find((x) => x.id === m.currentModel)?.supports_streaming ?? false,
+  );
   if (!settings) return null;
 
   const style = settings.overlay_style ?? "live";
@@ -39,6 +43,7 @@ export const AppearanceSettings: React.FC = () => {
           accent={accent}
           opacity={opacity}
           position={position}
+          showsWords={showsWords}
         />
         <button
           type="button"

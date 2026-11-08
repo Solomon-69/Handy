@@ -33,6 +33,31 @@ pub fn frontmost_bundle_id() -> Option<String> {
     }
 }
 
+/// Process id of the app in front. macOS only.
+pub fn frontmost_pid() -> Option<i32> {
+    #[cfg(target_os = "macos")]
+    {
+        mac::frontmost_pid()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        None
+    }
+}
+
+/// Brings the app with this process id back to the front. macOS only.
+pub fn activate_pid(pid: i32) -> bool {
+    #[cfg(target_os = "macos")]
+    {
+        mac::activate_pid(pid)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = pid;
+        false
+    }
+}
+
 #[cfg(target_os = "macos")]
 mod mac {
     use super::Rect;
@@ -120,7 +145,22 @@ mod mac {
         (ok_pos && ok_size).then(|| Rect::new(pos.x, pos.y, size.width, size.height))
     }
 
-    fn frontmost_pid() -> Option<i32> {
+    pub fn activate_pid(pid: i32) -> bool {
+        unsafe {
+            let app: *mut AnyObject = msg_send![
+                class!(NSRunningApplication),
+                runningApplicationWithProcessIdentifier: pid
+            ];
+            if app.is_null() {
+                return false;
+            }
+            // NSApplicationActivateAllWindows = 1 << 0
+            let ok: bool = msg_send![app, activateWithOptions: 1usize];
+            ok
+        }
+    }
+
+    pub fn frontmost_pid() -> Option<i32> {
         unsafe {
             let workspace: *mut AnyObject = msg_send![class!(NSWorkspace), sharedWorkspace];
             if workspace.is_null() {

@@ -11,7 +11,9 @@ export const ACCENT_COLORS: Record<string, string> = {
 };
 
 const SCALE: Record<string, number> = { small: 0.85, medium: 1, large: 1.2 };
-const BARS = [0.25, 0.45, 0.7, 0.9, 1, 0.9, 0.7, 0.45, 0.25];
+const BARS = [0.3, 0.5, 0.75, 0.95, 1, 0.95, 0.75, 0.5, 0.3];
+/** Neutral app icons for the little Dock; one uses the accent. */
+const DOCK = ["#8e8e93", "#a1a1a6", "accent", "#7c7c82", "#b0b0b5", "#96969b", "#88888d"];
 
 interface BarPreviewProps {
   sample: string;
@@ -20,11 +22,14 @@ interface BarPreviewProps {
   accent: string;
   opacity: number;
   position: string;
+  /** The chosen speech model can show words while you talk. */
+  showsWords: boolean;
 }
 
 /**
- * A live copy of the recording bar (dot | waveform | cancel), drawn with the
- * same geometry as RecordingOverlay.css so Settings shows what you will get.
+ * A small Mac screen (menu bar, wallpaper, Dock) with the recording bar where
+ * it really appears, drawn with the same geometry as RecordingOverlay.css.
+ * Words only show when the chosen model can really show them live.
  */
 export const BarPreview: React.FC<BarPreviewProps> = ({
   sample,
@@ -33,74 +38,100 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
   accent,
   opacity,
   position,
+  showsWords,
 }) => {
   const color = ACCENT_COLORS[accent] ?? ACCENT_COLORS.default;
   const scale = SCALE[size] ?? 1;
-  const live = style === "live";
+  const words = style === "live" && showsWords;
+  const top = position === "top";
 
   return (
     <div
-      className={`relative flex h-[132px] w-full max-w-[460px] justify-center rounded-[12px] bg-wash/60 overflow-hidden ${
-        position === "top" ? "items-start pt-3" : "items-end pb-3"
-      }`}
+      className="relative mx-auto aspect-[16/10] w-full max-w-[460px] overflow-hidden rounded-[14px] border border-line"
+      style={{
+        background: `radial-gradient(120% 90% at 20% 10%, color-mix(in srgb, ${color} 38%, transparent) 0%, transparent 60%), radial-gradient(100% 80% at 90% 100%, color-mix(in srgb, ${color} 22%, transparent) 0%, transparent 65%), var(--color-background)`,
+        transition: "background 300ms ease",
+      }}
       aria-hidden="true"
     >
       <style>{`
-        @keyframes hp-wave { 0%,100% { transform: scaleY(.55) } 50% { transform: scaleY(1) } }
+        @keyframes hp-wave { 0%,100% { transform: scaleY(.45) } 50% { transform: scaleY(1) } }
         @media (prefers-reduced-motion: reduce) { .hp-bar { animation: none !important } }
       `}</style>
-      {style === "none" ? (
-        <span className="self-center text-xs text-ink-3">-</span>
-      ) : (
+      {/* Menu bar */}
+      <div className="absolute inset-x-0 top-0 flex h-[14px] items-center gap-[6px] bg-text/10 px-[8px] backdrop-blur">
+        <span className="h-[5px] w-[5px] rounded-full bg-text/50" />
+        {[22, 16, 18, 14].map((w, i) => (
+          <span key={i} className="h-[3px] rounded-full bg-text/30" style={{ width: w }} />
+        ))}
+        <span className="ml-auto h-[3px] w-[30px] rounded-full bg-text/30" />
+      </div>
+      {/* Dock */}
+      <div className="absolute inset-x-0 bottom-[6px] flex justify-center">
+        <div className="flex items-end gap-[5px] rounded-[10px] border border-text/10 bg-text/10 px-[6px] py-[5px] backdrop-blur">
+          {DOCK.map((c, i) => (
+            <span
+              key={i}
+              className="h-[18px] w-[18px] rounded-[5px]"
+              style={{ background: c === "accent" ? color : c, opacity: 0.85 }}
+            />
+          ))}
+        </div>
+      </div>
+      {style === "none" ? null : (
         <div
-          style={{
-            zoom: scale,
-            opacity,
-            width: live ? 260 : 172,
-            transition:
-              "width 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease",
-          }}
-          className="flex flex-col rounded-[22px] border border-line bg-background"
+          className={`absolute inset-x-0 flex justify-center ${top ? "top-[20px]" : "bottom-[10px]"}`}
         >
-          {live && (
-            <p className="px-[14px] pt-[10px] text-[13px] italic leading-snug text-text/80 text-left">
-              {sample}
-            </p>
-          )}
           <div
-            className="grid h-[40px] items-center px-[10px]"
-            style={{ gridTemplateColumns: "minmax(22px,1fr) auto minmax(22px,1fr)" }}
+            style={{
+              zoom: scale * 0.82,
+              opacity,
+              width: words ? 260 : 172,
+              transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease",
+              boxShadow: "0 8px 24px rgba(0,0,0,.28)",
+            }}
+            className="flex flex-col rounded-[22px] border border-line bg-background"
           >
-            <span className="flex w-[22px] justify-center justify-self-start">
-              <span
-                className="h-[7px] w-[7px] rounded-full"
-                style={{ background: color, transition: "background 200ms ease" }}
-              />
-            </span>
-            <span className="flex h-[18px] items-center gap-[3px]">
-              {BARS.map((h, i) => (
-                <i
-                  key={i}
-                  className="hp-bar block w-[4px] rounded-[2px]"
-                  style={{
-                    height: 3 + h * 15,
-                    background: color,
-                    transition: "background 200ms ease",
-                    animation: `hp-wave 1.2s ease-in-out ${i * 90}ms infinite`,
-                  }}
+            {words && (
+              <p className="px-[14px] pt-[10px] text-left text-[13px] italic leading-snug text-text/80">
+                {sample}
+              </p>
+            )}
+            <div
+              className="grid h-[40px] items-center px-[10px]"
+              style={{ gridTemplateColumns: "minmax(22px,1fr) auto minmax(22px,1fr)" }}
+            >
+              <span className="flex w-[22px] justify-center justify-self-start">
+                <span
+                  className="h-[7px] w-[7px] rounded-full"
+                  style={{ background: color, transition: "background 200ms ease" }}
                 />
-              ))}
-            </span>
-            <span className="flex h-[22px] w-[22px] items-center justify-center justify-self-end rounded-full bg-wash text-ink-2">
-              <svg viewBox="0 0 16 16" width="9" height="9">
-                <path
-                  d="M4 4 L12 12 M12 4 L4 12"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>
+              </span>
+              <span className="flex h-[26px] items-center gap-[3px]">
+                {BARS.map((h, i) => (
+                  <i
+                    key={i}
+                    className="hp-bar block w-[4px] rounded-[2px]"
+                    style={{
+                      height: 4 + h * 22,
+                      background: color,
+                      transition: "background 200ms ease",
+                      animation: `hp-wave 0.9s cubic-bezier(.3,1,.4,1) ${i * 70}ms infinite`,
+                    }}
+                  />
+                ))}
+              </span>
+              <span className="flex h-[22px] w-[22px] items-center justify-center justify-self-end rounded-full bg-wash text-ink-2">
+                <svg viewBox="0 0 16 16" width="9" height="9">
+                  <path
+                    d="M4 4 L12 12 M12 4 L4 12"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+            </div>
           </div>
         </div>
       )}
