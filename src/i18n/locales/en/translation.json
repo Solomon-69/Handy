@@ -949,8 +949,8 @@
         "description": "How see-through the bar is"
       },
       "promptChip": {
-        "title": "Turn into a prompt",
-        "description": "After a long dictation, offer to rewrite it as a clear prompt for an AI, using the on-device Apple Intelligence model. Paste as is happens if you choose nothing.",
+        "title": "Prompt engineer",
+        "description": "After a long dictation, offer to rewrite it as a clear prompt for an AI, on-device with Apple Intelligence. If you pick nothing, it pastes as is.",
         "off": "Off",
         "ask": "Ask",
         "always": "Always",
@@ -1057,7 +1057,7 @@
     "loadingModel": "Loading model...",
     "chip": {
       "asIs": "As is",
-      "prompt": "Prompt",
+      "prompt": "Prompt engineer",
       "clean": "Clean up"
     }
   },

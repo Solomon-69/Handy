@@ -725,7 +725,7 @@ mod appearance_tests {
         assert_eq!(s.overlay_size, OverlaySize::Medium);
         assert_eq!(s.overlay_accent, "default");
         assert_eq!(s.overlay_opacity, 1.0);
-        assert_eq!(s.prompt_chip_mode, PromptChipMode::Off);
+        assert_eq!(s.prompt_chip_mode, PromptChipMode::Ask);
         assert_eq!(s.prompt_chip_min_words, 40);
     }
 
@@ -772,7 +772,7 @@ fn default_overlay_opacity() -> f64 {
 }
 
 fn default_prompt_chip_mode() -> PromptChipMode {
-    PromptChipMode::Off
+    PromptChipMode::Ask
 }
 
 fn default_prompt_chip_min_words() -> u32 {

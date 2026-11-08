@@ -101,18 +101,12 @@ pub fn bar_y(
     top_offset: f64,
     bottom_offset: f64,
 ) -> f64 {
-    let screen_top = screen.y + top_offset;
-    let screen_bottom = bottom_limit - height - bottom_offset;
-    let follow_window = mode == OverlayHorizontal::ActiveWindow;
-    match (position, follow_window, target) {
-        (OverlayPosition::Top, true, Some(t)) => {
-            (t.y + bottom_offset).clamp(screen_top, screen_bottom.max(screen_top))
-        }
-        (OverlayPosition::Bottom, true, Some(t)) => {
-            (t.bottom() - height - bottom_offset).clamp(screen_top, screen_bottom.max(screen_top))
-        }
-        (OverlayPosition::Top, _, _) => screen_top,
-        (OverlayPosition::Bottom, _, _) => screen_bottom,
+    // The bar stays at the screen edge vertically, so it never covers the
+    // text box being typed in; only its horizontal centre follows the window.
+    let _ = (mode, target);
+    match position {
+        OverlayPosition::Top => screen.y + top_offset,
+        OverlayPosition::Bottom => (bottom_limit - height - bottom_offset).max(screen.y + top_offset),
     }
 }
 
@@ -194,7 +188,7 @@ mod tests {
             46.0,
             15.0,
         );
-        assert_eq!(y, 540.0 - H - 15.0);
+        assert_eq!(y, 900.0 - H - 15.0, "bar never covers the text box");
         // A window running past the work area bottom keeps the bar above it.
         let tall = Rect::new(100.0, 40.0, 1000.0, 2000.0);
         let y = bar_y(
