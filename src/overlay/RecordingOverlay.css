@@ -453,15 +453,11 @@
 }
 /* Working label shimmers instead of a spinner (council pick): a soft
    highlight sweeps across the words; quick jobs (<250ms) never animate. */
-.sbase:has(> .swork-label) {
-  position: relative;
-}
 .swork-label {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  max-width: calc(100% - 68px);
+  /* Sits in the middle grid column, so it can never run under the cancel cross. */
+  grid-column: 2;
+  justify-self: center;
+  max-width: 100%;
   font-size: 14px;
   font-weight: 500;
   color: transparent;
@@ -479,7 +475,7 @@
   animation: swork-shimmer 1.6s ease-in-out 250ms infinite;
   background-position: 100% 0;
   white-space: nowrap;
-  padding: 0 8px; /* breathing room from the spinner / cancel when content-sized */
+  padding: 0 6px;
   /* Safety net: ellipsize rather than clip if a label exceeds the max pill width. */
   min-width: 0;
   overflow: hidden;
