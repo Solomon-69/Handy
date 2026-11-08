@@ -196,7 +196,15 @@ const settingUpdaters: {
   overlay_horizontal: (value) => appearance("overlay_horizontal", value),
   overlay_offset_x: (value) => appearance("overlay_offset_x", value),
   overlay_size: (value) => appearance("overlay_size", value),
-  overlay_accent: (value) => appearance("overlay_accent", value),
+  overlay_accent: (value) => {
+    document.documentElement.dataset.accent = String(value);
+    try {
+      localStorage.setItem("handy-accent", String(value));
+    } catch {
+      /* the saved setting still applies on next load */
+    }
+    return appearance("overlay_accent", value);
+  },
   overlay_opacity: (value) => appearance("overlay_opacity", value),
   prompt_chip_mode: (value) => appearance("prompt_chip_mode", value),
   prompt_chip_min_words: (value) => appearance("prompt_chip_min_words", value),

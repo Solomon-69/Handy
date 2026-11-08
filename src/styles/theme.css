@@ -242,3 +242,10 @@
   --color-warning-wash: var(--dark-color-warning-wash);
   --color-error-wash: var(--dark-color-error-wash);
 }
+
+/* App-wide accent chosen in Settings > Appearance (navy is the default). */
+:root[data-accent="pink"] { --color-logo-primary: #f28cbb; }
+:root[data-accent="green"] { --color-logo-primary: #22a06b; }
+:root[data-accent="orange"] { --color-logo-primary: #f97316; }
+:root[data-accent="purple"] { --color-logo-primary: #8b5cf6; }
+:root[data-accent="graphite"] { --color-logo-primary: #6b7280; }

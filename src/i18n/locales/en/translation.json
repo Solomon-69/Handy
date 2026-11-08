@@ -936,7 +936,7 @@
       },
       "accent": {
         "title": "Colour",
-        "description": "Accent colour for the dot and waveform",
+        "description": "Accent colour for the whole app and the recording bar",
         "default": "Navy",
         "pink": "Pink",
         "green": "Green",
