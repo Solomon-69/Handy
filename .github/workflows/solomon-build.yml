@@ -1,0 +1,91 @@
+name: "Solomon build"
+
+# Unsigned builds of this fork for macOS (Apple Silicon) and Windows, plus the
+# Rust and frontend test suites. The macOS app is signed locally afterwards.
+on:
+  workflow_dispatch:
+  push:
+    branches: [solomon]
+
+concurrency:
+  group: solomon-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+          key: solomon-test-v1
+      - run: bun install
+      - name: Frontend checks
+        run: |
+          bun run lint
+          bunx tsc --noEmit
+      - name: Rust tests
+        working-directory: src-tauri
+        env:
+          CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+        run: cargo test 2>&1 | tail -150
+
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-26
+            target: aarch64-apple-darwin
+            args: "--target aarch64-apple-darwin --bundles app"
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+            args: "--bundles nsis"
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Enable long paths (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" `
+            -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+          git config --system core.longpaths true
+      - uses: actions/checkout@v5
+      - uses: oven-sh/setup-bun@v2
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+          key: solomon-${{ matrix.target }}-v1
+          cache-bin: false
+      - name: Install Vulkan SDK (Windows)
+        if: runner.os == 'Windows'
+        uses: humbletim/install-vulkan-sdk@v1.2
+        with:
+          version: 1.4.309.0
+          cache: true
+      - run: bun install
+      - name: Build
+        shell: bash
+        env:
+          CMAKE_POLICY_VERSION_MINIMUM: "3.5"
+        run: |
+          bun run tauri build ${{ matrix.args }} \
+            --config '{"bundle":{"createUpdaterArtifacts":false}}'
+      - name: Zip macOS app
+        if: runner.os == 'macOS'
+        run: |
+          cd src-tauri/target/${{ matrix.target }}/release/bundle/macos
+          ditto -c -k --keepParent Handy.app Handy-macos-arm64.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: handy-${{ matrix.target }}
+          path: |
+            src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.zip
+            src-tauri/target/release/bundle/nsis/*.exe
+          retention-days: 14
