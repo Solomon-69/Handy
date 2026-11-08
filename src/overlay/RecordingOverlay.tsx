@@ -382,6 +382,9 @@ const RecordingOverlay: React.FC = () => {
 
   const choose = (choice: "paste" | "prompt" | "clean") => {
     setChip(null);
+    // Show "Prompt engineering..." / "Cleaning up..." straight away, never a
+    // flash of "Transcribing..." while the choice reaches the app.
+    if (choice !== "paste") setChipWork(choice);
     commands.promptChipChoose(choice);
   };
   const chipWorkRow =

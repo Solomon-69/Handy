@@ -959,7 +959,7 @@
         "description": "How see-through the bar is"
       },
       "promptChip": {
-        "title": "Prompt engineer",
+        "title": "Turn into a prompt",
         "description": "After a long dictation, offer to rewrite it as a clear prompt for an AI, on-device with Apple Intelligence. If you pick nothing, it pastes as is.",
         "off": "Off",
         "ask": "Ask",
