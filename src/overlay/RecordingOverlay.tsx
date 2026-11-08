@@ -81,6 +81,7 @@ const applyAppearance = (settings: AppSettings) => {
   root.style.setProperty("--ov-scale", String(OVERLAY_SCALE[size] ?? 0.92));
   root.style.setProperty("--ov-opacity", String(settings.overlay_opacity ?? 1));
   root.dataset.accent = settings.overlay_accent ?? "default";
+  root.dataset.look = settings.overlay_look ?? "solid";
 };
 
 const RecordingOverlay: React.FC = () => {

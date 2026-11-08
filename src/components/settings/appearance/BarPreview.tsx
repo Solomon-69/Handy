@@ -2,7 +2,7 @@ import React from "react";
 
 /** Swatch colours; keep in sync with :root[data-accent] in RecordingOverlay.css. */
 export const ACCENT_COLORS: Record<string, string> = {
-  default: "var(--color-logo-primary)",
+  default: "#4a6fe3",
   pink: "#f28cbb",
   green: "#22a06b",
   orange: "#f97316",
@@ -10,132 +10,188 @@ export const ACCENT_COLORS: Record<string, string> = {
   graphite: "#6b7280",
 };
 
+const blur = (px: number, bg: number): React.CSSProperties => ({
+  background: `color-mix(in srgb, var(--color-background) ${bg}%, transparent)`,
+  backdropFilter: `blur(${px}px)`,
+});
+const LOOKS: Record<string, React.CSSProperties> = {
+  solid: {},
+  frosted: blur(24, 72),
+  translucent: blur(14, 45),
+  clear: blur(4, 14),
+  glass: { ...blur(30, 30), borderColor: "color-mix(in srgb, white 35%, transparent)" },
+};
+
 const SCALE: Record<string, number> = { compact: 0.92, regular: 1.15 };
-const BARS = [0.3, 0.5, 0.75, 0.95, 1, 0.95, 0.75, 0.5, 0.3];
-/** Neutral app icons for the little Dock; one uses the accent. */
-const DOCK = ["#8e8e93", "#a1a1a6", "accent", "#7c7c82", "#b0b0b5", "#96969b", "#88888d"];
+const WAVE = [3, 6, 10, 15, 20, 15, 10, 6, 3];
+/** Neutral app icons for the Dock; one uses the accent. */
+const DOCK = Array.from({ length: 7 }, () => "#8e8e93");
+/** Real size of the Dock icons (points) next to a 32pt-tall bar. */
+const ICON = 48;
+/** Preview screen width over a typical 1470pt screen. */
+const SCREEN_FACTOR = 0.3;
 
 interface BarPreviewProps {
   sample: string;
   style: string;
   size: string;
   accent: string;
+  look?: string;
   opacity: number;
   position: string;
   /** The chosen speech model can show words while you talk. */
   showsWords: boolean;
 }
 
+/** The recording bar at its real size (points); callers scale it with `zoom`. */
+const Pill: React.FC<{
+  color: string;
+  scale: number;
+  words: boolean;
+  sample: string;
+  opacity: number;
+  look: string;
+}> = ({ color, scale, words, sample, opacity, look }) => (
+  <div
+    style={{
+      zoom: scale,
+      opacity,
+      width: words ? 260 : 150,
+      ...LOOKS[look],
+      transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease",
+    }}
+    className={`flex flex-col rounded-[22px] border border-line ${look === "solid" ? "bg-background" : ""}`}
+  >
+    {words && (
+      <p className="px-[14px] pt-[10px] text-left text-[13px] italic leading-snug text-text/80">
+        {sample}
+      </p>
+    )}
+    <div
+      className="grid h-[32px] items-center px-[10px]"
+      style={{ gridTemplateColumns: "minmax(22px,1fr) auto minmax(22px,1fr)" }}
+    >
+      <span className="flex w-[22px] justify-center justify-self-start">
+        <span className="h-[7px] w-[7px] rounded-full" style={{ background: color }} />
+      </span>
+      <span className="flex h-[20px] items-center gap-[3px]">
+        {WAVE.map((h, i) => (
+          <i
+            key={i}
+            className="hp-bar block w-[4px] rounded-[2px]"
+            style={{
+              height: h,
+              background: color,
+              animation: `hp-wave 0.9s cubic-bezier(.3,1,.4,1) ${i * 70}ms infinite`,
+            }}
+          />
+        ))}
+      </span>
+      <span className="flex h-[22px] w-[22px] items-center justify-center justify-self-end rounded-full bg-wash text-ink-2">
+        <svg viewBox="0 0 16 16" width="9" height="9">
+          <path d="M4 4 L12 12 M12 4 L4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      </span>
+    </div>
+  </div>
+);
+
+/** A real-size Dock with the bar sitting at its very bottom (or the menu bar with the bar below). */
+const Edge: React.FC<{ top: boolean; color: string; pill: React.ReactNode }> = ({ top, color, pill }) =>
+  top ? (
+    <div className="relative flex flex-col items-center" style={{ width: 1470, height: 120 }}>
+      <div className="h-[28px] w-full bg-text/10" />
+      <div style={{ marginTop: 6 }}>{pill}</div>
+    </div>
+  ) : (
+    <div className="relative flex items-end justify-center" style={{ width: 1470, height: 120 }}>
+      <div className="mb-[6px] flex items-end gap-[10px] rounded-[26px] border border-text/10 bg-text/10 px-[10px] py-[8px]">
+        {DOCK.map((c, i) => (
+          <span
+            key={i}
+            className="rounded-[11px]"
+            style={{ width: ICON, height: ICON, background: c, opacity: 0.85 }}
+          />
+        ))}
+      </div>
+      <div className="absolute bottom-[6px] left-1/2 -translate-x-1/2">{pill}</div>
+    </div>
+  );
+
 /**
- * A small Mac screen (menu bar, wallpaper, Dock) with the recording bar where
- * it really appears, drawn with the same geometry as RecordingOverlay.css.
- * Words only show when the chosen model can really show them live.
+ * A small Mac screen, plus a zoomed-in strip of the Dock and the bar, so the
+ * bar's real size and position are easy to judge. Words only show when the
+ * chosen model can really show them live.
  */
 export const BarPreview: React.FC<BarPreviewProps> = ({
   sample,
   style,
   size,
   accent,
+  look = "solid",
   opacity,
   position,
   showsWords,
 }) => {
   const color = ACCENT_COLORS[accent] ?? ACCENT_COLORS.default;
   const scale = SCALE[size] ?? 0.92;
-  const words = style === "live" && showsWords;
+  const words = style !== "none" && showsWords;
   const top = position === "top";
+  const pill =
+    style === "none" ? null : (
+      <Pill color={color} scale={scale} words={words} sample={sample} opacity={opacity} look={look} />
+    );
+  const wallpaper = `radial-gradient(120% 90% at 20% 10%, color-mix(in srgb, ${color} 38%, transparent) 0%, transparent 60%), radial-gradient(100% 80% at 90% 100%, color-mix(in srgb, ${color} 22%, transparent) 0%, transparent 65%), var(--color-background)`;
 
   return (
-    <div
-      className="relative mx-auto aspect-[16/10] w-full max-w-[460px] overflow-hidden rounded-[14px] border border-line"
-      style={{
-        background: `radial-gradient(120% 90% at 20% 10%, color-mix(in srgb, ${color} 38%, transparent) 0%, transparent 60%), radial-gradient(100% 80% at 90% 100%, color-mix(in srgb, ${color} 22%, transparent) 0%, transparent 65%), var(--color-background)`,
-        transition: "background 300ms ease",
-      }}
-      aria-hidden="true"
-    >
+    <div className="flex w-full max-w-[460px] flex-col items-center gap-3" aria-hidden="true">
       <style>{`
         @keyframes hp-wave { 0%,100% { transform: scaleY(.45) } 50% { transform: scaleY(1) } }
         @media (prefers-reduced-motion: reduce) { .hp-bar { animation: none !important } }
       `}</style>
-      {/* Menu bar */}
-      <div className="absolute inset-x-0 top-0 flex h-[14px] items-center gap-[6px] bg-text/10 px-[8px] backdrop-blur">
-        <span className="h-[5px] w-[5px] rounded-full bg-text/50" />
-        {[22, 16, 18, 14].map((w, i) => (
-          <span key={i} className="h-[3px] rounded-full bg-text/30" style={{ width: w }} />
-        ))}
-        <span className="ml-auto h-[3px] w-[30px] rounded-full bg-text/30" />
-      </div>
-      {/* Dock */}
-      <div className="absolute inset-x-0 bottom-[3px] flex justify-center">
-        <div className="flex items-end gap-[3px] rounded-[6px] border border-text/10 bg-text/10 px-[4px] py-[3px] backdrop-blur">
-          {DOCK.map((c, i) => (
-            <span
-              key={i}
-              className="h-[13px] w-[13px] rounded-[3px]"
-              style={{ background: c === "accent" ? color : c, opacity: 0.85 }}
-            />
+      {/* Whole screen, true proportions */}
+      <div
+        className="relative w-full overflow-hidden rounded-[14px] border border-line"
+        style={{ aspectRatio: "16 / 10", background: wallpaper, transition: "background 300ms ease" }}
+      >
+        <div className="absolute inset-x-0 top-0 flex h-[14px] items-center gap-[6px] bg-text/10 px-[8px]">
+          <span className="h-[5px] w-[5px] rounded-full bg-text/50" />
+          {[22, 16, 18, 14].map((w, i) => (
+            <span key={i} className="h-[3px] rounded-full bg-text/30" style={{ width: w }} />
           ))}
+          <span className="ml-auto h-[3px] w-[30px] rounded-full bg-text/30" />
+        </div>
+        <div
+          className="absolute left-1/2 origin-bottom"
+          style={{
+            bottom: 0,
+            transform: `translateX(-50%) scale(${SCREEN_FACTOR})`,
+            ...(top ? { top: 0, transformOrigin: "top center", bottom: "auto" } : {}),
+          }}
+        >
+          <Edge top={top} color={color} pill={pill} />
         </div>
       </div>
-      {style === "none" ? null : (
+      {/* Zoomed in: the Dock and the bar at their real size */}
+      <div className="w-full">
+        <p className="mb-1 text-center text-[11px] uppercase tracking-[.08em] text-ink-3">
+          Zoomed in
+        </p>
         <div
-          className={`absolute inset-x-0 flex justify-center ${top ? "top-[16px]" : "bottom-[3px]"}`}
+          className="relative h-[110px] w-full overflow-hidden rounded-[14px] border border-line"
+          style={{ background: wallpaper, transition: "background 300ms ease" }}
         >
           <div
+            className="absolute left-1/2"
             style={{
-              // True to size: the preview screen is ~460px wide for a ~1470pt screen.
-              zoom: scale * 0.34,
-              opacity,
-              width: words ? 260 : 150,
-              transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease",
-              boxShadow: "0 8px 24px rgba(0,0,0,.28)",
+              transform: "translateX(-50%) scale(0.62)",
+              ...(top ? { top: 0, transformOrigin: "top center" } : { bottom: 0, transformOrigin: "bottom center" }),
             }}
-            className="flex flex-col rounded-[22px] border border-line bg-background"
           >
-            {words && (
-              <p className="px-[14px] pt-[10px] text-left text-[13px] italic leading-snug text-text/80">
-                {sample}
-              </p>
-            )}
-            <div
-              className="grid h-[32px] items-center px-[10px]"
-              style={{ gridTemplateColumns: "minmax(22px,1fr) auto minmax(22px,1fr)" }}
-            >
-              <span className="flex w-[22px] justify-center justify-self-start">
-                <span
-                  className="h-[7px] w-[7px] rounded-full"
-                  style={{ background: color, transition: "background 200ms ease" }}
-                />
-              </span>
-              <span className="flex h-[20px] items-center gap-[3px]">
-                {BARS.map((h, i) => (
-                  <i
-                    key={i}
-                    className="hp-bar block w-[4px] rounded-[2px]"
-                    style={{
-                      height: 3 + h * 17,
-                      background: color,
-                      transition: "background 200ms ease",
-                      animation: `hp-wave 0.9s cubic-bezier(.3,1,.4,1) ${i * 70}ms infinite`,
-                    }}
-                  />
-                ))}
-              </span>
-              <span className="flex h-[22px] w-[22px] items-center justify-center justify-self-end rounded-full bg-wash text-ink-2">
-                <svg viewBox="0 0 16 16" width="9" height="9">
-                  <path
-                    d="M4 4 L12 12 M12 4 L4 12"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </span>
-            </div>
+            <Edge top={top} color={color} pill={pill} />
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

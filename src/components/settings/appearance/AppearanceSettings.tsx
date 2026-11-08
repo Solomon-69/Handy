@@ -26,6 +26,7 @@ export const AppearanceSettings: React.FC = () => {
   const horizontal = settings.overlay_horizontal ?? "screen";
   const offset = settings.overlay_offset_x ?? 0;
   const accent = settings.overlay_accent ?? "default";
+  const look = settings.overlay_look ?? "solid";
   const opacity = settings.overlay_opacity ?? 1;
   const chipMode = settings.prompt_chip_mode ?? "smart";
   const minWords = settings.prompt_chip_min_words ?? 40;
@@ -42,6 +43,7 @@ export const AppearanceSettings: React.FC = () => {
           style={style}
           size={size}
           accent={accent}
+          look={look}
           opacity={opacity}
           position={position}
           showsWords={showsWords}
@@ -157,6 +159,19 @@ export const AppearanceSettings: React.FC = () => {
             />
           ))}
         </div>
+      </SettingContainer>
+      <SettingContainer
+        title={t(`${a}.look.title`)}
+        description={t(`${a}.look.description`)}
+        descriptionMode="tooltip"
+        grouped={true}
+      >
+        <SegmentedControl
+          ariaLabel={t(`${a}.look.title`)}
+          options={seg(`${a}.look`, ["solid", "frosted", "translucent", "clear", "glass"])}
+          value={look}
+          onChange={(v) => updateSetting("overlay_look", v)}
+        />
       </SettingContainer>
       <SettingContainer
         title={t(`${a}.opacity.title`)}

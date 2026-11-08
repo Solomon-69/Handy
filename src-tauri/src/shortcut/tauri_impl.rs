@@ -11,6 +11,33 @@ use crate::settings::{self, ShortcutBinding};
 
 use super::handler::handle_shortcut_event;
 
+use std::sync::atomic::{AtomicU64, Ordering};
+
+/// Counts shortcut events so a delayed release can tell it was overtaken.
+static EVENT_GEN: AtomicU64 = AtomicU64::new(0);
+
+/// True when macOS reports the Option+Space keys are still physically held.
+/// A "released" event that arrives while they are held is false (it used to
+/// end long dictations after 20-30 seconds), so it is ignored.
+#[cfg(target_os = "macos")]
+fn keys_still_held(shortcut: &str) -> bool {
+    #[link(name = "CoreGraphics", kind = "framework")]
+    extern "C" {
+        fn CGEventSourceKeyState(state_id: i32, key: u16) -> bool;
+    }
+    let s = shortcut.to_lowercase();
+    if !(s.contains("space") && (s.contains("alt") || s.contains("option"))) {
+        return false;
+    }
+    // 1 = hardware state; 49 = Space; 58/61 = left/right Option.
+    unsafe { CGEventSourceKeyState(1, 49) && (CGEventSourceKeyState(1, 58) || CGEventSourceKeyState(1, 61)) }
+}
+
+#[cfg(not(target_os = "macos"))]
+fn keys_still_held(_shortcut: &str) -> bool {
+    false
+}
+
 /// Initialize shortcuts using Tauri's global-shortcut plugin
 pub fn init_shortcuts(app: &AppHandle) {
     let default_bindings = settings::get_default_settings().bindings;
@@ -119,6 +146,31 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
                     "tauri global-shortcut event: binding={}, shortcut={}, state={:?}",
                     binding_id_for_closure, shortcut_string, event.state
                 );
+                let generation = EVENT_GEN.fetch_add(1, Ordering::SeqCst) + 1;
+                if !is_pressed && keys_still_held(&shortcut_string) {
+                    warn!(
+                        "ignored a false key release for '{}': the keys are still held; waiting for the real release",
+                        binding_id_for_closure
+                    );
+                    let (app, id, sc) = (
+                        app_handle.clone(),
+                        binding_id_for_closure.clone(),
+                        shortcut_string.clone(),
+                    );
+                    std::thread::spawn(move || {
+                        for _ in 0..2400 {
+                            std::thread::sleep(std::time::Duration::from_millis(50));
+                            if EVENT_GEN.load(Ordering::SeqCst) != generation {
+                                return; // a newer real event took over
+                            }
+                            if !keys_still_held(&sc) {
+                                handle_shortcut_event(&app, &id, &sc, false);
+                                return;
+                            }
+                        }
+                    });
+                    return;
+                }
                 handle_shortcut_event(
                     app_handle,
                     &binding_id_for_closure,

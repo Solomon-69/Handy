@@ -1247,6 +1247,10 @@ overlay_offset_x?: number; overlay_size?: OverlaySize;
  */
 overlay_accent?: string; 
 /**
+ * Bar look: solid, frosted, translucent, clear or glass.
+ */
+overlay_look?: string; 
+/**
  * Bar opacity, 0.4 to 1.0.
  */
 overlay_opacity?: number; prompt_chip_mode?: PromptChipMode; 
