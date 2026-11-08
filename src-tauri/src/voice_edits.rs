@@ -209,7 +209,6 @@ mod tests {
         assert_eq!(strip_fillers("I like coffee"), "I like coffee");
     }
 
-    #[test]
     fn snip(trigger: &str, text: &str) -> Snippet {
         Snippet {
             trigger: trigger.into(),
