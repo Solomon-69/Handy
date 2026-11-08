@@ -1670,4 +1670,60 @@ mod tests {
         );
         assert_eq!(state.stage, Stage::Processing);
     }
+
+    fn input_for(binding: &str, mode: ShortcutActivation, is_pressed: bool) -> InputEvent {
+        InputEvent {
+            binding_id: binding.to_string(),
+            hotkey_string: binding.to_string(),
+            is_pressed,
+            mode,
+            hold_threshold: HOLD_THRESHOLD,
+            external: false,
+        }
+    }
+
+    /// Solomon's report: "plain Option+Space sometimes turns into the prompt
+    /// rewrite". Hold the plain shortcut for 3+ minutes (and, separately, tap
+    /// it to lock and talk for 3+ minutes) while the post-process shortcut
+    /// fires every few seconds, as a stray Shift would make it. Every effect
+    /// must belong to the plain binding: no post-processing can run.
+    #[test]
+    fn plain_shortcut_never_becomes_post_process_during_long_dictation() {
+        let mode = ShortcutActivation::HoldOrToggle;
+        for locked_session in [false, true] {
+            let mut state = CoordinatorState::new();
+            let t0 = Instant::now();
+            let mut effects = Vec::new();
+            effects.extend(state.on_input(input_for("transcribe", mode, true), t0));
+            let mut now = t0;
+            if locked_session {
+                now += ms(100);
+                effects.extend(state.on_input(input_for("transcribe", mode, false), now));
+                effects.extend(state.on_grace_expired());
+            }
+            // 3.5 minutes of talking with a stray post-process press every 3 s.
+            for _ in 0..70 {
+                now += ms(3_000);
+                let stray = "transcribe_with_post_process";
+                effects.extend(state.on_input(input_for(stray, mode, true), now));
+                effects.extend(state.on_input(input_for(stray, mode, false), now + ms(120)));
+                effects.extend(state.on_grace_expired());
+            }
+            now += ms(3_000);
+            if locked_session {
+                effects.extend(state.on_input(input_for("transcribe", mode, true), now));
+            } else {
+                effects.extend(state.on_input(input_for("transcribe", mode, false), now));
+                effects.extend(state.on_grace_expired());
+            }
+            assert_eq!(state.stage, Stage::Processing, "session must end normally");
+            assert_eq!(effects.len(), 2, "exactly one start and one stop: {effects:?}");
+            for effect in &effects {
+                let id = match effect {
+                    Effect::Start { binding_id, .. } | Effect::Stop { binding_id, .. } => binding_id,
+                };
+                assert_eq!(id, "transcribe", "post-process must never run: {effects:?}");
+            }
+        }
+    }
 }

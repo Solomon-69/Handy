@@ -780,6 +780,20 @@ pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(),
     Ok(())
 }
 
+/// One command for every Appearance / prompt-chip setting (key + string
+/// value), so the Settings page doesn't need a binding per control.
+#[tauri::command]
+#[specta::specta]
+pub fn change_appearance_setting(app: AppHandle, key: String, value: String) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings::apply_appearance_setting(&mut settings, &key, &value)?;
+    settings::write_settings(&app, settings);
+    // The bar reads its look on every show; tell a visible one to refresh now.
+    let _ = app.emit("appearance-changed", ());
+    crate::utils::update_overlay_position(&app);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_debug_mode_setting(app: AppHandle, enabled: bool) -> Result<(), String> {

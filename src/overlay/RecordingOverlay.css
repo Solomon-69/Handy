@@ -42,6 +42,9 @@
    drawn past it (matters for the 4px top offset on Windows/Linux).
    ============================================================ */
 .ov-stage {
+  /* Appearance settings: size (zoom) and opacity, set from RecordingOverlay.tsx. */
+  zoom: var(--ov-scale, 1);
+  opacity: var(--ov-opacity, 1);
   position: fixed;
   inset: 0;
   display: flex;
@@ -291,9 +294,12 @@
   grid-template-columns: minmax(22px, 1fr) auto minmax(22px, 1fr);
   align-items: center;
 }
+/* The dot sits centred in a 22px box, the same size as the cancel button on
+   the right, so both sides mirror and the waveform is exactly centred. */
 .sbase-l {
   display: flex;
-  padding-left: 5px;
+  width: 22px;
+  justify-content: center;
   align-items: center;
   justify-self: start;
 }
@@ -351,7 +357,6 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  padding-right: 8px;
   height: 18px;
   flex: none;
 }
@@ -456,4 +461,24 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Accent swatches (Settings > Appearance). "default" keeps the app colour. */
+:root[data-accent="blue"] {
+  --s-accent: #3b82f6;
+}
+:root[data-accent="green"] {
+  --s-accent: #22a06b;
+}
+:root[data-accent="orange"] {
+  --s-accent: #f97316;
+}
+:root[data-accent="purple"] {
+  --s-accent: #8b5cf6;
+}
+:root[data-accent="graphite"] {
+  --s-accent: #6b7280;
+}
+:root[data-accent]:not([data-accent="default"]) {
+  --s-accent-soft: color-mix(in srgb, var(--s-accent) 20%, transparent);
 }

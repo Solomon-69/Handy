@@ -5,7 +5,7 @@ name: "Solomon build"
 on:
   workflow_dispatch:
   push:
-    branches: [solomon]
+    branches: [solomon, overnight-8-nov]
 
 concurrency:
   group: solomon-build-${{ github.ref }}

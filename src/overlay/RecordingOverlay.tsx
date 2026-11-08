@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import "./RecordingOverlay.css";
 import { commands, events } from "@/bindings";
 import type {
+  AppSettings,
   Notice,
   StreamPhase,
   StreamPhaseEvent,
@@ -42,6 +43,17 @@ const OVERLAY_FADE_MS = 300;
 
 // 13px padding on each side, the 16px badge and its 7px gap.
 const NOTICE_PILL_CHROME = 49;
+
+const OVERLAY_SCALE = { small: 0.85, medium: 1, large: 1.2 } as const;
+
+/** Applies the Appearance settings (size, opacity, accent) to the bar. */
+const applyAppearance = (settings: AppSettings) => {
+  const root = document.documentElement;
+  const size = settings.overlay_size ?? "medium";
+  root.style.setProperty("--ov-scale", String(OVERLAY_SCALE[size] ?? 1));
+  root.style.setProperty("--ov-opacity", String(settings.overlay_opacity ?? 1));
+  root.dataset.accent = settings.overlay_accent ?? "default";
+};
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -122,6 +134,7 @@ const RecordingOverlay: React.FC = () => {
             setPosition(
               settings.data.overlay_position === "top" ? "top" : "bottom",
             );
+            applyAppearance(settings.data);
           }
         } catch {
           // Keep the previous/default placement if settings can't be read.
@@ -135,6 +148,11 @@ const RecordingOverlay: React.FC = () => {
           setSession((s) => s + 1); // remount the card fresh for this session
         }
         setIsVisible(true);
+      });
+
+      const unlistenAppearance = await listen("appearance-changed", async () => {
+        const settings = await commands.getAppSettings();
+        if (settings.status === "ok") applyAppearance(settings.data);
       });
 
       const unlistenHide = await listen("hide-overlay", () => {
@@ -207,6 +225,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenNotice();
         unlistenShow();
         unlistenHide();
+        unlistenAppearance();
         unlistenReady();
         unlistenLevel();
         unlistenStream();

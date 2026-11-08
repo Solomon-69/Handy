@@ -125,6 +125,17 @@ async changeOverlayStyleSetting(style: string) : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async changeAppearanceSetting(key: string, value: string) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_appearance_setting", { key, value }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async previewRecordingOverlay() : Promise<void> {
+    await TAURI_INVOKE("preview_recording_overlay");
+},
 async changeDebugModeSetting(enabled: boolean) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("change_debug_mode_setting", { enabled }) };
@@ -1170,7 +1181,23 @@ language_detection_window_secs?: number;
  * not gated on this — that follows model capability. Migrated from the old
  * `overlay_position` (position `none` → style `None`).
  */
-overlay_style?: OverlayStyle }
+overlay_style?: OverlayStyle; overlay_horizontal?: OverlayHorizontal; 
+/**
+ * Custom horizontal offset from the screen centre, in points.
+ */
+overlay_offset_x?: number; overlay_size?: OverlaySize; 
+/**
+ * Accent swatch id for the bar ("default" follows the app colour).
+ */
+overlay_accent?: string; 
+/**
+ * Bar opacity, 0.4 to 1.0.
+ */
+overlay_opacity?: number; prompt_chip_mode?: PromptChipMode; 
+/**
+ * Dictations at least this many words long get the prompt chip.
+ */
+prompt_chip_min_words?: number }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AutoUnavailableReason = 
@@ -1370,6 +1397,9 @@ export type OverlayPosition = "top" | "bottom"
  * streaming mode (that is driven purely by model capability).
  */
 export type OverlayStyle = "none" | "minimal" | "live"
+export type OverlayHorizontal = "screen" | "active_window" | "custom"
+export type OverlaySize = "small" | "medium" | "large"
+export type PromptChipMode = "off" | "ask" | "always"
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"

@@ -70,13 +70,33 @@ fn finish_clipboard_paste(
     paste_result
 }
 
-/// Pastes text using the clipboard: saves current content, writes text, sends paste keystroke, restores clipboard.
+/// Longest wait before the old clipboard is put back after a paste.
+const MAX_RESTORE_DELAY_MS: u64 = 1500;
+
+/// How long to wait after the paste keystroke before putting the old clipboard
+/// back. Busy apps (Electron, long chats) read the pasted data asynchronously,
+/// later for big pastes; putting the old item back before that read makes them
+/// paste the OLD clipboard instead of the dictation. Scales with text length.
+fn clipboard_restore_delay_ms(paste_delay_after_ms: u64, text_len: usize) -> u64 {
+    let scaled = 250 + (text_len as u64) / 20;
+    paste_delay_after_ms.max(scaled.min(MAX_RESTORE_DELAY_MS))
+}
+
+/// Whether the old clipboard should be put back at all. When the person keeps
+/// the dictation on the clipboard anyway, restoring only opens the race above.
+fn should_restore_clipboard(handling: ClipboardHandling) -> bool {
+    handling != ClipboardHandling::CopyToClipboard
+}
+
+/// Pastes text using the clipboard: saves current content, writes text, sends
+/// paste keystroke, and (unless `restore` is false) restores the clipboard.
 fn paste_via_clipboard(
     text: &str,
     app_handle: &AppHandle,
     paste_method: &PasteMethod,
     paste_delay_ms: u64,
     paste_delay_after_ms: u64,
+    restore: bool,
 ) -> Result<(), String> {
     let clipboard = app_handle.clipboard();
     let saved_text = clipboard.read_text().ok().filter(|t| !t.is_empty());
@@ -120,7 +140,13 @@ fn paste_via_clipboard(
         Ok(())
     })();
 
-    finish_clipboard_paste(paste_result, paste_delay_after_ms, || {
+    if !restore {
+        // The dictation stays on the clipboard; nothing to put back, so the
+        // target app can read it whenever it gets round to it.
+        return paste_result;
+    }
+    let restore_delay = clipboard_restore_delay_ms(paste_delay_after_ms, text.len());
+    finish_clipboard_paste(paste_result, restore_delay, || {
         // Restore original clipboard content even when key injection failed.
         // Text takes priority so this path stays identical to the previous behavior;
         // an image is only restored when the clipboard held no text at all, which is
@@ -890,6 +916,7 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
                 &paste_method,
                 paste_delay_ms,
                 paste_delay_after_ms,
+                should_restore_clipboard(settings.clipboard_handling),
             )?
         }
         PasteMethod::ExternalScript => {
@@ -923,6 +950,41 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The long-dictation glitch: the target app reads the pasted data some
+    /// time after Cmd+V. Simulate that read and check what it gets.
+    fn simulated_read(handling: ClipboardHandling, text: &str, app_read_after_ms: u64) -> &'static str {
+        let restore = should_restore_clipboard(handling);
+        let restore_at = clipboard_restore_delay_ms(60, text.len());
+        if restore && app_read_after_ms >= restore_at {
+            "OLD"
+        } else {
+            "DICTATION"
+        }
+    }
+
+    #[test]
+    fn slow_app_never_pastes_old_clipboard_when_dictation_is_kept() {
+        let long = "word ".repeat(400);
+        for read_after in [50, 160, 300, 1200, 5000] {
+            assert_eq!(
+                simulated_read(ClipboardHandling::CopyToClipboard, &long, read_after),
+                "DICTATION",
+                "read after {read_after} ms"
+            );
+        }
+    }
+
+    #[test]
+    fn restore_waits_longer_than_a_slow_electron_read() {
+        // Before the fix the old clipboard came back after 60 ms; a 300 ms read
+        // (common in busy Electron apps) then pasted the old item.
+        let long = "word ".repeat(400);
+        assert_eq!(simulated_read(ClipboardHandling::DontModify, &long, 300), "DICTATION");
+        assert!(clipboard_restore_delay_ms(60, 0) >= 250);
+        assert!(clipboard_restore_delay_ms(60, 1_000_000) <= MAX_RESTORE_DELAY_MS);
+        assert_eq!(clipboard_restore_delay_ms(2000, 10), 2000, "a longer user delay wins");
+    }
     use std::cell::Cell;
 
     #[cfg(target_os = "linux")]

@@ -20,6 +20,16 @@ pub struct CliArgs {
     #[arg(long)]
     pub toggle_post_process: bool,
 
+    /// Show the recording bar for a few seconds without recording, to check
+    /// how it looks and where it sits (sent to running instance)
+    #[arg(long)]
+    pub preview_overlay: bool,
+
+    /// Show the "Turn into a prompt" choice with sample text, without
+    /// recording (sent to running instance)
+    #[arg(long)]
+    pub preview_prompt_chip: bool,
+
     /// Cancel the current operation (sent to running instance)
     #[arg(long)]
     pub cancel: bool,

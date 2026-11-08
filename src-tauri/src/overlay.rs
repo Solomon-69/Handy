@@ -1,7 +1,8 @@
 use crate::input;
 use crate::notices::Notice;
 use crate::settings;
-use crate::settings::{OverlayPosition, OverlayStyle};
+use crate::overlay_placement::{bar_x, bar_y, Rect};
+use crate::settings::{OverlayHorizontal, OverlayPosition, OverlayStyle};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, PhysicalSize};
@@ -75,13 +76,21 @@ fn notice_state(session_is_live: bool) -> &'static str {
     }
 }
 
-/// Overlay window size (logical) for a given UI state.
-fn overlay_dimensions(state: &str) -> (f64, f64) {
+/// Overlay window size (logical) for a given UI state, before the size setting.
+fn base_overlay_dimensions(state: &str) -> (f64, f64) {
     if is_live_state(state) {
         (OVERLAY_STREAM_WIDTH, OVERLAY_STREAM_HEIGHT)
     } else {
         (OVERLAY_WIDTH, OVERLAY_HEIGHT)
     }
+}
+
+/// Overlay window size (logical) for a given UI state, scaled by the bar size
+/// setting (the CSS zooms the card by the same factor).
+fn overlay_dimensions(app_handle: &AppHandle, state: &str) -> (f64, f64) {
+    let scale = settings::get_settings(app_handle).overlay_size.scale();
+    let (w, h) = base_overlay_dimensions(state);
+    ((w * scale).ceil(), (h * scale).ceil())
 }
 
 static LAST_MIC_LEVEL_EMIT: AtomicU64 = AtomicU64::new(0);
@@ -270,33 +279,74 @@ fn calculate_overlay_position(
     width: f64,
     height: f64,
 ) -> Option<(f64, f64)> {
-    let monitor = get_monitor_with_cursor(app_handle)?;
-    let scale = monitor.scale_factor();
-    let monitor_x = monitor.position().x as f64 / scale;
-    let monitor_y = monitor.position().y as f64 / scale;
-    let monitor_width = monitor.size().width as f64 / scale;
-
     let settings = settings::get_settings(app_handle);
-
-    let x = monitor_x + (monitor_width - width) / 2.0;
-    let y = match settings.overlay_position {
-        OverlayPosition::Top => monitor_y + OVERLAY_TOP_OFFSET,
-        OverlayPosition::Bottom => {
-            // work_area.position shares monitor.position's global coordinate
-            // space, so no monitor offset is added.
-            #[cfg(target_os = "macos")]
-            let bottom = {
-                let wa = monitor.work_area();
-                (wa.position.y as f64 + wa.size.height as f64) / scale
-            };
-            #[cfg(not(target_os = "macos"))]
-            let bottom = monitor_y + monitor.size().height as f64 / scale;
-
-            bottom - height - OVERLAY_BOTTOM_OFFSET
-        }
+    let target = if settings.overlay_horizontal == OverlayHorizontal::ActiveWindow {
+        crate::active_window::focused_target_frame()
+    } else {
+        None
     };
 
+    // Prefer the monitor holding the active window/text box; else the cursor's.
+    let monitor = target
+        .and_then(|t| monitor_containing(app_handle, t.center_x(), t.y + t.h / 2.0))
+        .or_else(|| get_monitor_with_cursor(app_handle))?;
+    let scale = monitor.scale_factor();
+    let screen = Rect::new(
+        monitor.position().x as f64 / scale,
+        monitor.position().y as f64 / scale,
+        monitor.size().width as f64 / scale,
+        monitor.size().height as f64 / scale,
+    );
+
+    // work_area.position shares monitor.position's global coordinate space, so
+    // no monitor offset is added.
+    #[cfg(target_os = "macos")]
+    let bottom_limit = {
+        let wa = monitor.work_area();
+        (wa.position.y as f64 + wa.size.height as f64) / scale
+    };
+    #[cfg(not(target_os = "macos"))]
+    let bottom_limit = screen.bottom();
+
+    let x = bar_x(
+        settings.overlay_horizontal,
+        &screen,
+        target.as_ref(),
+        settings.overlay_offset_x,
+        width,
+    );
+    let y = bar_y(
+        settings.overlay_position,
+        settings.overlay_horizontal,
+        &screen,
+        bottom_limit,
+        target.as_ref(),
+        height,
+        OVERLAY_TOP_OFFSET,
+        OVERLAY_BOTTOM_OFFSET,
+    );
+    log::debug!(
+        "overlay placement: mode={:?} target={:?} screen={:?} -> ({x}, {y})",
+        settings.overlay_horizontal,
+        target,
+        screen
+    );
     Some((x, y))
+}
+
+/// The monitor whose bounds (logical) contain the given global point.
+fn monitor_containing(app_handle: &AppHandle, px: f64, py: f64) -> Option<tauri::Monitor> {
+    let monitors = app_handle.available_monitors().ok()?;
+    monitors.into_iter().find(|m| {
+        let scale = m.scale_factor();
+        Rect::new(
+            m.position().x as f64 / scale,
+            m.position().y as f64 / scale,
+            m.size().width as f64 / scale,
+            m.size().height as f64 / scale,
+        )
+        .contains_point(px, py)
+    })
 }
 
 /// Current overlay window size in logical units (points), for repositioning
@@ -378,6 +428,17 @@ fn place_windows_overlay(
         logical_height,
         settings::get_settings(app_handle).overlay_position,
     );
+    // Windows has no active-window lookup yet: "Custom offset" shifts the bar
+    // from the screen centre, the other modes keep it centred.
+    let settings = settings::get_settings(app_handle);
+    let x = if settings.overlay_horizontal == OverlayHorizontal::Custom {
+        let monitor_x = monitor.position().x;
+        let max_x = monitor_x + monitor.size().width as i32 - width;
+        (x + (settings.overlay_offset_x * monitor.scale_factor()).round() as i32)
+            .clamp(monitor_x, max_x.max(monitor_x))
+    } else {
+        x
+    };
     let hwnd = overlay_window
         .hwnd()
         .map_err(|error| format!("failed to get overlay window handle: {error}"))?;
@@ -533,7 +594,7 @@ fn show_overlay_state(app_handle: &AppHandle, state: &str) {
 
 fn show_overlay_state_on_main(app_handle: &AppHandle, state: &str) {
     // Size the overlay for this state (compact vs. streaming), then position it.
-    let (width, height) = overlay_dimensions(state);
+    let (width, height) = overlay_dimensions(app_handle, state);
     if let Some(overlay_window) = app_handle.get_webview_window("recording_overlay") {
         // Invalidate any delayed hide still in flight from a previous session
         // (see `hide_recording_overlay`).
@@ -695,6 +756,48 @@ pub fn is_session_showing() -> bool {
     OVERLAY_SESSION_SHOWING.load(Ordering::SeqCst)
 }
 
+/// How long `preview_overlay` keeps the bar on screen.
+const PREVIEW_HOLD: Duration = Duration::from_millis(4500);
+
+/// Shows the bar in its listening look for a few seconds without touching the
+/// microphone, so placement and appearance can be checked. Ignored while a real
+/// session is showing.
+pub fn preview_overlay(app_handle: &AppHandle) {
+    if OVERLAY_SESSION_SHOWING.load(Ordering::SeqCst) {
+        return;
+    }
+    show_overlay_state(app_handle, "recording");
+    let handle = app_handle.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(Duration::from_millis(120));
+        if let Some(window) = handle.get_webview_window("recording_overlay") {
+            let _ = window.emit("recording-ready", ());
+            // A gentle, symmetric fake waveform.
+            let levels: Vec<f32> = [0.15, 0.3, 0.5, 0.7, 0.9, 0.7, 0.5, 0.3, 0.15]
+                .into_iter()
+                .chain(std::iter::repeat(0.0).take(7))
+                .collect();
+            for _ in 0..12 {
+                let _ = window.emit("mic-level", &levels);
+                std::thread::sleep(Duration::from_millis(40));
+            }
+        }
+        let generation = OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst);
+        std::thread::sleep(PREVIEW_HOLD);
+        // Only hide our own preview, never a session that started meanwhile.
+        if OVERLAY_SHOW_GENERATION.load(Ordering::SeqCst) == generation {
+            hide_recording_overlay(&handle);
+        }
+    });
+}
+
+/// Settings "Show on screen" button.
+#[tauri::command]
+#[specta::specta]
+pub fn preview_recording_overlay(app: AppHandle) {
+    preview_overlay(&app);
+}
+
 /// Updates the overlay window position based on current settings
 pub fn update_overlay_position(app_handle: &AppHandle) {
     // Positioning queries monitors/cursor (GDK/Xlib on Linux) and moves the
@@ -722,7 +825,7 @@ fn update_overlay_position_on_main(app_handle: &AppHandle) {
             } else {
                 "recording"
             };
-            let (width, height) = overlay_dimensions(state);
+            let (width, height) = overlay_dimensions(app_handle, state);
             if let Err(error) = place_windows_overlay(app_handle, &overlay_window, width, height) {
                 log::error!("Failed to update recording overlay position: {error}");
             }
@@ -852,8 +955,8 @@ mod tests {
     fn a_notice_keeps_the_size_of_its_session() {
         for (session, live) in [("streaming", true), ("recording", false)] {
             assert_eq!(
-                overlay_dimensions(notice_state(is_live_state(session))),
-                overlay_dimensions(session)
+                base_overlay_dimensions(notice_state(is_live_state(session))),
+                base_overlay_dimensions(session)
             );
             assert_eq!(is_live_state(session), live);
         }

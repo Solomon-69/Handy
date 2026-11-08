@@ -145,6 +145,46 @@ pub enum OverlayStyle {
     Live,
 }
 
+/// Where the recording bar sits left-to-right. `ActiveWindow` centres it on the
+/// text box (or window) the person is typing into, so apps with a sidebar don't
+/// leave the bar looking off-centre.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum OverlayHorizontal {
+    Screen,
+    ActiveWindow,
+    Custom,
+}
+
+/// Recording bar size.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[serde(rename_all = "lowercase")]
+pub enum OverlaySize {
+    Small,
+    Medium,
+    Large,
+}
+
+impl OverlaySize {
+    /// Zoom applied to the bar (and its native window).
+    pub fn scale(self) -> f64 {
+        match self {
+            OverlaySize::Small => 0.85,
+            OverlaySize::Medium => 1.0,
+            OverlaySize::Large => 1.2,
+        }
+    }
+}
+
+/// When to offer "Turn into a prompt" after a dictation.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum PromptChipMode {
+    Off,
+    Ask,
+    Always,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum ModelUnloadTimeout {
@@ -569,6 +609,151 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    #[serde(default = "default_overlay_horizontal")]
+    pub overlay_horizontal: OverlayHorizontal,
+    /// Custom horizontal offset from the screen centre, in points.
+    #[serde(default)]
+    pub overlay_offset_x: f64,
+    #[serde(default = "default_overlay_size")]
+    pub overlay_size: OverlaySize,
+    /// Accent swatch id for the bar ("default" follows the app colour).
+    #[serde(default = "default_overlay_accent")]
+    pub overlay_accent: String,
+    /// Bar opacity, 0.4 to 1.0.
+    #[serde(default = "default_overlay_opacity")]
+    pub overlay_opacity: f64,
+    #[serde(default = "default_prompt_chip_mode")]
+    pub prompt_chip_mode: PromptChipMode,
+    /// Dictations at least this many words long get the prompt chip.
+    #[serde(default = "default_prompt_chip_min_words")]
+    pub prompt_chip_min_words: u32,
+}
+
+/// Accent swatch ids the recording bar understands (see RecordingOverlay.css).
+pub const OVERLAY_ACCENTS: [&str; 6] = ["default", "blue", "green", "orange", "purple", "graphite"];
+
+/// Applies one Appearance / prompt-chip setting from its string form, with
+/// validation. Returns an error (and leaves `settings` untouched) on bad input.
+pub fn apply_appearance_setting(
+    settings: &mut AppSettings,
+    key: &str,
+    value: &str,
+) -> Result<(), String> {
+    let parse_f64 = |v: &str| {
+        v.trim()
+            .parse::<f64>()
+            .ok()
+            .filter(|n| n.is_finite())
+            .ok_or_else(|| format!("'{v}' is not a number"))
+    };
+    match key {
+        "overlay_horizontal" => {
+            settings.overlay_horizontal = match value {
+                "screen" => OverlayHorizontal::Screen,
+                "active_window" => OverlayHorizontal::ActiveWindow,
+                "custom" => OverlayHorizontal::Custom,
+                other => return Err(format!("Unknown horizontal position '{other}'")),
+            }
+        }
+        "overlay_offset_x" => settings.overlay_offset_x = parse_f64(value)?.clamp(-800.0, 800.0),
+        "overlay_size" => {
+            settings.overlay_size = match value {
+                "small" => OverlaySize::Small,
+                "medium" => OverlaySize::Medium,
+                "large" => OverlaySize::Large,
+                other => return Err(format!("Unknown bar size '{other}'")),
+            }
+        }
+        "overlay_accent" => {
+            if !OVERLAY_ACCENTS.contains(&value) {
+                return Err(format!("Unknown accent '{value}'"));
+            }
+            settings.overlay_accent = value.to_string();
+        }
+        "overlay_opacity" => settings.overlay_opacity = parse_f64(value)?.clamp(0.4, 1.0),
+        "prompt_chip_mode" => {
+            settings.prompt_chip_mode = match value {
+                "off" => PromptChipMode::Off,
+                "ask" => PromptChipMode::Ask,
+                "always" => PromptChipMode::Always,
+                other => return Err(format!("Unknown prompt mode '{other}'")),
+            }
+        }
+        "prompt_chip_min_words" => {
+            let n = value
+                .trim()
+                .parse::<u32>()
+                .map_err(|_| format!("'{value}' is not a whole number"))?;
+            settings.prompt_chip_min_words = n.clamp(5, 2000);
+        }
+        other => return Err(format!("Unknown appearance setting '{other}'")),
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod appearance_tests {
+    use super::*;
+
+    #[test]
+    fn new_fields_default_when_missing_from_store() {
+        let s: AppSettings = serde_json::from_str("{}").unwrap();
+        assert_eq!(s.overlay_horizontal, OverlayHorizontal::ActiveWindow);
+        assert_eq!(s.overlay_size, OverlaySize::Medium);
+        assert_eq!(s.overlay_accent, "default");
+        assert_eq!(s.overlay_opacity, 1.0);
+        assert_eq!(s.prompt_chip_mode, PromptChipMode::Off);
+        assert_eq!(s.prompt_chip_min_words, 40);
+    }
+
+    #[test]
+    fn applies_and_validates_values() {
+        let mut s = AppSettings::default();
+        apply_appearance_setting(&mut s, "overlay_horizontal", "custom").unwrap();
+        assert_eq!(s.overlay_horizontal, OverlayHorizontal::Custom);
+        apply_appearance_setting(&mut s, "overlay_offset_x", "-9999").unwrap();
+        assert_eq!(s.overlay_offset_x, -800.0);
+        apply_appearance_setting(&mut s, "overlay_opacity", "0.1").unwrap();
+        assert_eq!(s.overlay_opacity, 0.4);
+        apply_appearance_setting(&mut s, "overlay_size", "large").unwrap();
+        assert_eq!(s.overlay_size.scale(), 1.2);
+        apply_appearance_setting(&mut s, "overlay_accent", "green").unwrap();
+        apply_appearance_setting(&mut s, "prompt_chip_mode", "ask").unwrap();
+        apply_appearance_setting(&mut s, "prompt_chip_min_words", "2").unwrap();
+        assert_eq!(s.prompt_chip_min_words, 5);
+
+        let before = s.clone();
+        assert!(apply_appearance_setting(&mut s, "overlay_accent", "neon").is_err());
+        assert!(apply_appearance_setting(&mut s, "overlay_opacity", "NaN").is_err());
+        assert!(apply_appearance_setting(&mut s, "overlay_size", "huge").is_err());
+        assert!(apply_appearance_setting(&mut s, "nope", "1").is_err());
+        assert_eq!(s.overlay_accent, before.overlay_accent);
+        assert_eq!(s.overlay_opacity, before.overlay_opacity);
+    }
+}
+
+fn default_overlay_horizontal() -> OverlayHorizontal {
+    OverlayHorizontal::ActiveWindow
+}
+
+fn default_overlay_size() -> OverlaySize {
+    OverlaySize::Medium
+}
+
+fn default_overlay_accent() -> String {
+    "default".to_string()
+}
+
+fn default_overlay_opacity() -> f64 {
+    1.0
+}
+
+fn default_prompt_chip_mode() -> PromptChipMode {
+    PromptChipMode::Off
+}
+
+fn default_prompt_chip_min_words() -> u32 {
+    40
 }
 
 fn default_model() -> String {
@@ -1067,6 +1252,13 @@ pub fn get_default_settings() -> AppSettings {
         language_detection: LanguageDetectionMode::default(),
         language_detection_window_secs: default_language_detection_window_secs(),
         overlay_style: default_overlay_style(),
+        overlay_horizontal: default_overlay_horizontal(),
+        overlay_offset_x: 0.0,
+        overlay_size: default_overlay_size(),
+        overlay_accent: default_overlay_accent(),
+        overlay_opacity: default_overlay_opacity(),
+        prompt_chip_mode: default_prompt_chip_mode(),
+        prompt_chip_min_words: default_prompt_chip_min_words(),
     }
 }
 

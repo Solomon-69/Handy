@@ -1,4 +1,5 @@
 mod actions;
+mod active_window;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
@@ -19,6 +20,8 @@ mod managers;
 mod memory;
 mod notices;
 mod overlay;
+mod overlay_placement;
+mod prompt_chip;
 mod paste_tx;
 pub mod portable;
 mod secure_input;
@@ -697,6 +700,8 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_spoken_languages_setting,
             shortcut::change_overlay_position_setting,
             shortcut::change_overlay_style_setting,
+            shortcut::change_appearance_setting,
+            overlay::preview_recording_overlay,
             shortcut::change_debug_mode_setting,
             shortcut::change_word_correction_threshold_setting,
             shortcut::change_extra_recording_buffer_setting,
@@ -909,6 +914,10 @@ pub fn run(cli_args: CliArgs) {
                 signal_handle::send_transcription_input(app, "transcribe", "CLI");
             } else if args.iter().any(|a| a == "--toggle-post-process") {
                 signal_handle::send_transcription_input(app, "transcribe_with_post_process", "CLI");
+            } else if args.iter().any(|a| a == "--preview-overlay") {
+                crate::overlay::preview_overlay(app);
+            } else if args.iter().any(|a| a == "--preview-prompt-chip") {
+                crate::prompt_chip::preview(app);
             } else if args.iter().any(|a| a == "--cancel") {
                 crate::utils::cancel_current_operation(app);
             } else {
