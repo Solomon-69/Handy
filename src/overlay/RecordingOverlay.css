@@ -159,7 +159,9 @@
   width: var(--ov-rest-w);
 }
 .scard.compact.cworking {
-  width: var(--ov-work-w);
+  /* Only as wide as the label needs (plus the cross), never wider. */
+  width: fit-content;
+  min-width: var(--ov-rest-w);
 }
 
 /* Notice: badge and title, in the pill and the Live panel. */
