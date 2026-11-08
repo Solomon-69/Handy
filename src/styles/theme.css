@@ -124,7 +124,8 @@
   );
 
   /* Tokens that do not change between light and dark */
-  --color-background-ui: #da5893;
+  /* Primary actions (switches, buttons, progress) follow the chosen accent. */
+  --color-background-ui: var(--color-logo-primary);
   --color-mid-gray: #808080;
 
   /* Active palette — defaults to light, follows the OS via the media query
@@ -244,8 +245,8 @@
 }
 
 /* App-wide accent chosen in Settings > Appearance (navy is the default). */
-:root[data-accent="pink"] { --color-logo-primary: #f28cbb; }
-:root[data-accent="green"] { --color-logo-primary: #22a06b; }
-:root[data-accent="orange"] { --color-logo-primary: #f97316; }
-:root[data-accent="purple"] { --color-logo-primary: #8b5cf6; }
-:root[data-accent="graphite"] { --color-logo-primary: #6b7280; }
+:root[data-accent="pink"] { --light-color-logo-primary: #f28cbb; --dark-color-logo-primary: #f28cbb; --color-logo-primary: #f28cbb; }
+:root[data-accent="green"] { --light-color-logo-primary: #22a06b; --dark-color-logo-primary: #22a06b; --color-logo-primary: #22a06b; }
+:root[data-accent="orange"] { --light-color-logo-primary: #f97316; --dark-color-logo-primary: #f97316; --color-logo-primary: #f97316; }
+:root[data-accent="purple"] { --light-color-logo-primary: #8b5cf6; --dark-color-logo-primary: #8b5cf6; --color-logo-primary: #8b5cf6; }
+:root[data-accent="graphite"] { --light-color-logo-primary: #6b7280; --dark-color-logo-primary: #6b7280; --color-logo-primary: #6b7280; }
