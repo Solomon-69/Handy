@@ -236,7 +236,7 @@ mod tests {
             apply("Send it to me comma then call Sam full stop", true, &[]),
             "Send it to me, then call Sam."
         );
-        assert_eq!(apply("Use and slash or here", true, &[]), "Use and/or here");
+        assert_eq!(apply("Use the slash prompt skill", true, &[]), "Use the /prompt skill");
         assert_eq!(apply("I need twenty five chairs", true, &[]), "I need 25 chairs");
     }
 

@@ -13,8 +13,8 @@ const PUNCTUATION: [(&str, &str, bool, bool); 13] = [
     ("exclamation point", "!", true, false),
     ("colon", ":", true, false),
     ("semicolon", ";", true, false),
-    ("slash", "/", true, true),
-    ("forward slash", "/", true, true),
+    ("forward slash", "/", false, true),
+    ("slash", "/", false, true),
     ("new line", "\n", true, true),
     ("new paragraph", "\n\n", true, true),
     ("open bracket", "(", false, true),
@@ -123,6 +123,16 @@ fn match_punct(words: &[String], i: usize) -> Option<(&'static str, bool, bool, 
     })
 }
 
+/// "slash" only becomes "/" when a word follows straight after it
+/// ("the slash prompt skill" -> "the /prompt skill"); otherwise it stays a word.
+fn slash_has_word_after(words: &[String], next: usize) -> bool {
+    words
+        .get(next)
+        .and_then(|w| w.chars().next())
+        .is_some_and(|c| c.is_alphanumeric())
+        && match_punct(words, next).is_none()
+}
+
 fn capitalize(word: &str) -> String {
     let mut c = word.chars();
     match c.next() {
@@ -139,13 +149,19 @@ pub fn apply(text: &str) -> String {
     let mut cap_next = false;
     let mut i = 0;
     while i < words.len() {
-        if let Some((sym, join_prev, join_next, used)) = match_punct(&words, i) {
+        if let Some((sym, join_prev, join_next, used)) = match_punct(&words, i)
+            .filter(|(sym, _, _, used)| {
+                *sym != "/"
+                    || (trailing_punct(&words[i + used - 1]).is_empty()
+                        && slash_has_word_after(&words, i + used))
+            })
+        {
             if join_prev {
                 // Drop punctuation the model already put on the previous word.
                 while out.ends_with([',', '.', ' ']) && !out.is_empty() && sym != "/" {
                     out.pop();
                 }
-            } else if !out.is_empty() && !glue_next {
+            } else if !out.is_empty() && !glue_next && !out.ends_with('\n') {
                 out.push(' ');
             }
             out.push_str(sym);
@@ -175,7 +191,10 @@ mod tests {
     fn spoken_punctuation_becomes_symbols() {
         assert_eq!(apply("Hello comma how are you question mark"), "Hello, how are you?");
         assert_eq!(apply("It's done full stop thanks"), "It's done. Thanks");
-        assert_eq!(apply("and slash or"), "and/or");
+        assert_eq!(apply("and slash or"), "and /or");
+        assert_eq!(apply("use the slash prompt skill"), "use the /prompt skill");
+        assert_eq!(apply("it ends with a slash"), "it ends with a slash");
+        assert_eq!(apply("a slash, then more"), "a slash, then more");
         assert_eq!(apply("Hi. full stop"), "Hi.");
     }
 

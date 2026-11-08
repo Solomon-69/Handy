@@ -2,6 +2,8 @@ import Dispatch
 import Foundation
 import FoundationModels
 
+private let PLAIN_OUTPUT_MARKER = "[[plain]]"
+
 @available(macOS 26.0, *)
 @Generable
 private struct CleanedTranscript: Sendable {
@@ -56,7 +58,13 @@ public func processTextWithSystemPrompt(
     _ userContent: UnsafePointer<CChar>,
     maxTokens: Int32
 ) -> UnsafeMutablePointer<AppleLLMResponse> {
-    let swiftSystemPrompt = String(cString: systemPrompt)
+    // A prompt starting with PLAIN_OUTPUT_MARKER wants free-form Markdown
+    // (Turn into a prompt); the one-field structured answer would flatten it.
+    let rawSystemPrompt = String(cString: systemPrompt)
+    let plainOutput = rawSystemPrompt.hasPrefix(PLAIN_OUTPUT_MARKER)
+    let swiftSystemPrompt = plainOutput
+        ? String(rawSystemPrompt.dropFirst(PLAIN_OUTPUT_MARKER.count))
+        : rawSystemPrompt
     let swiftUserContent = String(cString: userContent)
     let responsePtr = ResponsePointer.allocate(capacity: 1)
     responsePtr.initialize(to: AppleLLMResponse(response: nil, success: 0, error_message: nil))
@@ -95,15 +103,19 @@ public func processTextWithSystemPrompt(
             )
             var output: String
 
-            do {
-                let structured = try await session.respond(
-                    to: swiftUserContent,
-                    generating: CleanedTranscript.self
-                )
-                output = structured.content.cleanedText
-            } catch {
-                let fallbackGeneration = try await session.respond(to: swiftUserContent)
-                output = fallbackGeneration.content
+            if plainOutput {
+                output = try await session.respond(to: swiftUserContent).content
+            } else {
+                do {
+                    let structured = try await session.respond(
+                        to: swiftUserContent,
+                        generating: CleanedTranscript.self
+                    )
+                    output = structured.content.cleanedText
+                } catch {
+                    let fallbackGeneration = try await session.respond(to: swiftUserContent)
+                    output = fallbackGeneration.content
+                }
             }
 
             if tokenLimit > 0 {
