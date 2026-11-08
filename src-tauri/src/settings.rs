@@ -646,7 +646,7 @@ fn default_voice_corrections_enabled() -> bool {
 }
 
 /// Accent swatch ids the recording bar understands (see RecordingOverlay.css).
-pub const OVERLAY_ACCENTS: [&str; 6] = ["default", "blue", "green", "orange", "purple", "graphite"];
+pub const OVERLAY_ACCENTS: [&str; 6] = ["default", "pink", "green", "orange", "purple", "graphite"];
 
 /// Applies one Appearance / prompt-chip setting from its string form, with
 /// validation. Returns an error (and leaves `settings` untouched) on bad input.

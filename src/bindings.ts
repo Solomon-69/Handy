@@ -141,6 +141,14 @@ async changeSnippetsSetting(snippets: Snippet[]) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
+async openAccessibilitySettings() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("open_accessibility_settings") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async promptChipChoose(choice: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("prompt_chip_choose", { choice }) };

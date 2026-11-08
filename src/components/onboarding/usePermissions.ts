@@ -220,6 +220,9 @@ export const usePermissions = (preview: boolean): Permissions => {
     if (preview) return;
     try {
       await requestAccessibilityPermission();
+      // macOS only shows its own prompt once per app; open the settings page
+      // too, so the switch for Handy is always one click away.
+      await commands.openAccessibilitySettings();
       setAccessibility("waiting");
       startPolling();
     } catch (error) {

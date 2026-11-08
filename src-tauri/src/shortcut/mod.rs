@@ -794,6 +794,19 @@ pub fn change_appearance_setting(app: AppHandle, key: String, value: String) -> 
     Ok(())
 }
 
+/// Opens System Settings at Privacy & Security > Accessibility, so the
+/// onboarding "Allow" button always lands where Handy can be switched on.
+#[tauri::command]
+#[specta::specta]
+pub fn open_accessibility_settings() -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open")
+        .arg("x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Saves the snippet list (empty triggers/texts are dropped).
 #[tauri::command]
 #[specta::specta]

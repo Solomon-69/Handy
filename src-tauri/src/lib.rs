@@ -703,6 +703,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_overlay_style_setting,
             shortcut::change_appearance_setting,
             shortcut::change_snippets_setting,
+            shortcut::open_accessibility_settings,
             overlay::preview_recording_overlay,
             prompt_chip::prompt_chip_choose,
             shortcut::change_debug_mode_setting,

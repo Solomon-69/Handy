@@ -3,7 +3,7 @@ import React from "react";
 /** Swatch colours; keep in sync with :root[data-accent] in RecordingOverlay.css. */
 export const ACCENT_COLORS: Record<string, string> = {
   default: "var(--color-logo-primary)",
-  blue: "#3b82f6",
+  pink: "#f28cbb",
   green: "#22a06b",
   orange: "#f97316",
   purple: "#8b5cf6",

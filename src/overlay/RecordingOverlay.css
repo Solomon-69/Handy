@@ -464,8 +464,8 @@
 }
 
 /* Accent swatches (Settings > Appearance). "default" keeps the app colour. */
-:root[data-accent="blue"] {
-  --s-accent: #3b82f6;
+:root[data-accent="pink"] {
+  --s-accent: #f28cbb;
 }
 :root[data-accent="green"] {
   --s-accent: #22a06b;
