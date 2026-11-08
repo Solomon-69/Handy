@@ -26,31 +26,9 @@ const SCRATCH_CUES: [&str; 2] = ["scratch that", "delete that"];
 /// punctuation and numbers, then snippets.
 pub fn apply(text: &str, _corrections: bool, snippets: &[Snippet]) -> String {
     let ruled = apply_corrections(text);
-    let filler_free = strip_fillers(&ruled);
-    let fixed = crate::smart_fix::apply(&filler_free);
+    let fixed = crate::smart_fix::apply(&ruled);
     let corrected = crate::spoken_format::apply(&fixed);
     expand_snippets(&corrected, snippets)
-}
-
-/// Filler words people say without meaning them, same as Wispr Flow's cleanup:
-/// "um", "uh" always go; "like", "you know" only go between clauses, never
-/// when they carry meaning ("I like coffee", "you know the answer").
-const FILLERS: &[&str] = &["um", "umm", "uh", "uhh", "erm", "er"];
-
-fn strip_fillers(text: &str) -> String {
-    let words: Vec<&str> = text.split_whitespace().collect();
-    let mut out: Vec<&str> = Vec::with_capacity(words.len());
-    for w in words {
-        if FILLERS.contains(&norm(w).as_str()) {
-            continue;
-        }
-        out.push(w);
-    }
-    if out.is_empty() {
-        text.to_string()
-    } else {
-        out.join(" ")
-    }
 }
 
 /// Lowercase letters/digits only, for matching cue words.
@@ -202,12 +180,6 @@ pub fn expand_snippets(text: &str, snippets: &[Snippet]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn strips_um_and_uh_but_keeps_meaning() {
-        assert_eq!(strip_fillers("um I think uh we should go"), "I think we should go");
-        assert_eq!(strip_fillers("I like coffee"), "I like coffee");
-    }
 
     fn snip(trigger: &str, text: &str) -> Snippet {
         Snippet {
