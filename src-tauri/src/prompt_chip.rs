@@ -169,7 +169,7 @@ How:\n\
 - Keep every real point: every ask, decision, name, number, date, link, constraint, preference and reason. Drop only filler, repeats, false starts and hesitations.\n\
 - Fix voice-typing mistakes; pick the most likely meaning and commit. When the speaker corrects themselves, keep only the correction.\n\
 - Where a point is a vague fragment, spell out what it most likely means in a short phrase. Do not add new tasks.\n\
-- Condense everything else: the same point said several times becomes one clear line.\n\
+- Condense everything else: the same point said several times becomes one clear line. Keep it short: about half the original length.\n\
 - Keep the speaker's first person (\"I want\", \"I need\") and language. Keep slash commands, tool names, file paths and proper nouns exactly as said.\n\
 - Mark only what the speaker said is important with **bold**, sparingly.\n\
 - Never repeat a point in two sections. Leave a section out rather than fill it with guesses or keyword lists.\n\
@@ -236,7 +236,9 @@ mod tests {
     #[test]
     fn smart_rewrites_only_clear_prompts() {
         let prompt = "Build a settings screen for the app with a dark mode toggle, \
-            make sure the toggle slides smoothly and use the existing button component";
+            make sure the toggle slides smoothly and use the existing button component, \
+            then add a section for notifications with three options, keep the spacing the same as the other pages, \
+            write tests for each option and fix anything that breaks before you finish the change";
         let claude = Some("com.anthropic.claudefordesktop");
         assert_eq!(decide(PromptChipMode::Smart, 40, prompt, claude), ChipDecision::RewriteNow);
         assert_eq!(decide(PromptChipMode::Smart, 40, prompt, Some("com.apple.mail")), ChipDecision::Paste);

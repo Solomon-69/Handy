@@ -17,7 +17,7 @@ pub enum Detected {
 }
 
 /// Fewer words than this are never rewritten.
-const MIN_WORDS: usize = 12;
+const MIN_WORDS: usize = 50;
 /// Score needed in an AI app (the app already counts for +3).
 const THRESHOLD_AI_APP: i32 = 5;
 /// Score needed anywhere else (higher, so wording alone rarely wins).
@@ -147,14 +147,16 @@ mod tests {
     const SAFARI: Option<&str> = Some("com.apple.Safari");
 
     const PROMPT: &str = "Build a settings screen for the app with a dark mode toggle, \
-        make sure the toggle slides smoothly and use the existing button component";
+        make sure the toggle slides smoothly and use the existing button component, \
+        then add a section for notifications with three options, keep the spacing the same as the other pages, \
+        write tests for each option and fix anything that breaks before you finish the change";
 
     #[test]
     fn prompt_in_ai_app_is_detected() {
         assert_eq!(detect(PROMPT, CLAUDE), Detected::Prompt);
         assert_eq!(
             detect("I want you to write a function that sorts the list of users by name and returns the first ten", Some("com.todesktop.230313mzl4w4u92")),
-            Detected::Prompt
+            Detected::Normal, "short requests are just cleaned, never turned into a prompt"
         );
     }
 

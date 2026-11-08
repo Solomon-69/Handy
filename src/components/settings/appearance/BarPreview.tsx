@@ -67,12 +67,12 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
         <span className="ml-auto h-[3px] w-[30px] rounded-full bg-text/30" />
       </div>
       {/* Dock */}
-      <div className="absolute inset-x-0 bottom-[6px] flex justify-center">
-        <div className="flex items-end gap-[5px] rounded-[10px] border border-text/10 bg-text/10 px-[6px] py-[5px] backdrop-blur">
+      <div className="absolute inset-x-0 bottom-[3px] flex justify-center">
+        <div className="flex items-end gap-[3px] rounded-[6px] border border-text/10 bg-text/10 px-[4px] py-[3px] backdrop-blur">
           {DOCK.map((c, i) => (
             <span
               key={i}
-              className="h-[18px] w-[18px] rounded-[5px]"
+              className="h-[13px] w-[13px] rounded-[3px]"
               style={{ background: c === "accent" ? color : c, opacity: 0.85 }}
             />
           ))}
@@ -80,11 +80,12 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
       </div>
       {style === "none" ? null : (
         <div
-          className={`absolute inset-x-0 flex justify-center ${top ? "top-[20px]" : "bottom-[10px]"}`}
+          className={`absolute inset-x-0 flex justify-center ${top ? "top-[16px]" : "bottom-[3px]"}`}
         >
           <div
             style={{
-              zoom: scale * 0.82,
+              // True to size: the preview screen is ~460px wide for a ~1470pt screen.
+              zoom: scale * 0.34,
               opacity,
               width: words ? 260 : 172,
               transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease",
@@ -98,7 +99,7 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
               </p>
             )}
             <div
-              className="grid h-[40px] items-center px-[10px]"
+              className="grid h-[32px] items-center px-[10px]"
               style={{ gridTemplateColumns: "minmax(22px,1fr) auto minmax(22px,1fr)" }}
             >
               <span className="flex w-[22px] justify-center justify-self-start">
@@ -107,13 +108,13 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
                   style={{ background: color, transition: "background 200ms ease" }}
                 />
               </span>
-              <span className="flex h-[26px] items-center gap-[3px]">
+              <span className="flex h-[20px] items-center gap-[3px]">
                 {BARS.map((h, i) => (
                   <i
                     key={i}
                     className="hp-bar block w-[4px] rounded-[2px]"
                     style={{
-                      height: 4 + h * 22,
+                      height: 3 + h * 17,
                       background: color,
                       transition: "background 200ms ease",
                       animation: `hp-wave 0.9s cubic-bezier(.3,1,.4,1) ${i * 70}ms infinite`,

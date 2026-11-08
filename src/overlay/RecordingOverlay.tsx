@@ -38,8 +38,8 @@ const WAVE_ATTACK = 0.6;
 const WAVE_RELEASE = 0.18;
 const WAVE_PEAK_FLOOR = 0.12;
 const WAVE_PEAK_DECAY = 0.985;
-const WAVE_MIN_PX = 4;
-const WAVE_MAX_PX = 26;
+const WAVE_MIN_PX = 3;
+const WAVE_MAX_PX = 20;
 
 /** Auto-gain + centre-weighted shape; returns 0..1 per bar. */
 function shapeWave(raw: number[], peakRef: { current: number }): number[] {
@@ -405,9 +405,7 @@ const RecordingOverlay: React.FC = () => {
   // listening row, so the label is centered.
   const workingRow = (label: string, showCancel: boolean) => (
     <div className="sbase">
-      <div className="sbase-l">
-        <span className="sspinner" />
-      </div>
+      <div className="sbase-l" />
       <span className="swork-label">{label}</span>
       <div className="sbase-r">{showCancel && cancelBtn}</div>
     </div>
