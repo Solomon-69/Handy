@@ -90,6 +90,11 @@ fn words(text: &str) -> Vec<String> {
         .collect()
 }
 
+/// Is this app one where people talk to an AI?
+pub fn is_ai_app(bundle_id: &str) -> bool {
+    AI_APPS.contains(&bundle_id.to_lowercase().as_str())
+}
+
 /// Score the wording alone (no app bonus). Positive = prompt-like.
 pub fn wording_score(text: &str) -> i32 {
     let lower = format!(" {} ", words(text).join(" "));

@@ -41,6 +41,27 @@ pub fn prompt_chip_choose(choice: String) -> Result<(), String> {
     Ok(())
 }
 
+/// Called the moment transcribing starts: when the dictation is long and going
+/// into an AI app, show "Prompt engineering..." straight away, never
+/// "Transcribing..." first. About 2.5 spoken words per second at 16 kHz.
+pub fn predict_prompt(app: &AppHandle, sample_count: usize) {
+    let s = settings::get_settings(app);
+    let seconds = sample_count as f64 / 16000.0;
+    let long_enough = match s.prompt_chip_mode {
+        PromptChipMode::Smart => seconds * 2.5 >= 50.0,
+        PromptChipMode::Always => seconds * 2.5 >= s.prompt_chip_min_words as f64,
+        _ => false,
+    };
+    if !long_enough {
+        return;
+    }
+    let app_id = crate::active_window::frontmost_bundle_id().unwrap_or_default();
+    if s.prompt_chip_mode == PromptChipMode::Smart && !crate::prompt_detect::is_ai_app(&app_id) {
+        return;
+    }
+    let _ = app.emit_to("recording_overlay", "prompt-chip-working", "prompt");
+}
+
 /// Called on the paste thread just before pasting. Returns the text to paste:
 /// the dictation itself unless the person picked a rewrite (or chose Always).
 /// Blocks for at most CHIP_TIMEOUT_MS while the choice is up.
@@ -50,7 +71,11 @@ pub fn resolve(app: &AppHandle, text: String) -> String {
     let decision = decide(s.prompt_chip_mode, s.prompt_chip_min_words, &text, app_id.as_deref());
     log::info!("prompt chip: mode={:?} app={:?} decision={decision:?}", s.prompt_chip_mode, app_id);
     let choice = match decision {
-        ChipDecision::Paste => return text,
+        ChipDecision::Paste => {
+            // A guess made earlier may have shown "Prompt engineering...".
+            let _ = app.emit_to("recording_overlay", "prompt-chip-done", ());
+            return text;
+        }
         ChipDecision::RewriteNow => Choice::TurnIntoPrompt,
         ChipDecision::Ask => ask(app, &text),
     };

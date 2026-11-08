@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::time::{Duration, Instant};
 
 /// Longest wait for the original app to come back to the front.
-pub const FOCUS_WAIT_MS: u64 = 300;
+pub const FOCUS_WAIT_MS: u64 = 1500;
 const POLL_MS: u64 = 20;
 const NO_TARGET: i32 = 0;
 

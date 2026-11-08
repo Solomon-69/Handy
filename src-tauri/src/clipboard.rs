@@ -897,7 +897,8 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     let _paste = PASTE_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
     let settings = get_settings(&app_handle);
     let paste_method = settings.paste_method;
-    let paste_delay_ms = settings.paste_delay_ms;
+    // Long dictations need the clipboard a little longer to settle.
+    let paste_delay_ms = settings.paste_delay_ms + (text.len() as u64 / 20).min(400);
     let paste_delay_after_ms = settings.paste_delay_after_ms;
 
     // Append trailing space if setting is enabled

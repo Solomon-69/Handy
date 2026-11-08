@@ -721,6 +721,7 @@ impl ShortcutAction for TranscribeAction {
                 // Read now: by the time transcribing ends, another take may
                 // have replaced it.
                 let input_silent = rm.last_input_silent();
+                crate::prompt_chip::predict_prompt(&ah, samples.len());
                 debug!(
                     "Recording stopped and samples retrieved in {:?}, sample count: {}",
                     stop_recording_time.elapsed(),
