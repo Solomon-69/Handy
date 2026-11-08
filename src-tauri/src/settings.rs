@@ -202,18 +202,20 @@ pub fn binding_enabled(id: &str, settings: &AppSettings) -> bool {
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum OverlaySize {
-    Small,
-    Medium,
-    Large,
+    /// The default, slim bar. Older "small" and "medium" settings map here.
+    #[serde(alias = "small", alias = "medium")]
+    Compact,
+    /// Bigger, for large screens or low vision. Older "large" maps here.
+    #[serde(alias = "large")]
+    Regular,
 }
 
 impl OverlaySize {
     /// Zoom applied to the bar (and its native window).
     pub fn scale(self) -> f64 {
         match self {
-            OverlaySize::Small => 0.85,
-            OverlaySize::Medium => 1.0,
-            OverlaySize::Large => 1.2,
+            OverlaySize::Compact => 0.92,
+            OverlaySize::Regular => 1.15,
         }
     }
 }
@@ -729,9 +731,8 @@ pub fn apply_appearance_setting(
         "overlay_offset_x" => settings.overlay_offset_x = parse_f64(value)?.clamp(-800.0, 800.0),
         "overlay_size" => {
             settings.overlay_size = match value {
-                "small" => OverlaySize::Small,
-                "medium" => OverlaySize::Medium,
-                "large" => OverlaySize::Large,
+                "compact" | "small" | "medium" => OverlaySize::Compact,
+                "regular" | "large" => OverlaySize::Regular,
                 other => return Err(format!("Unknown bar size '{other}'")),
             }
         }
@@ -780,7 +781,7 @@ mod appearance_tests {
     fn new_fields_default_when_missing_from_store() {
         let s: AppSettings = serde_json::from_str("{}").unwrap();
         assert_eq!(s.overlay_horizontal, OverlayHorizontal::Screen);
-        assert_eq!(s.overlay_size, OverlaySize::Medium);
+        assert_eq!(s.overlay_size, OverlaySize::Compact);
         assert_eq!(s.overlay_accent, "default");
         assert_eq!(s.overlay_opacity, 1.0);
         assert_eq!(s.prompt_chip_mode, PromptChipMode::Smart);
@@ -855,7 +856,7 @@ fn default_overlay_horizontal() -> OverlayHorizontal {
 }
 
 fn default_overlay_size() -> OverlaySize {
-    OverlaySize::Medium
+    OverlaySize::Compact
 }
 
 fn default_overlay_accent() -> String {

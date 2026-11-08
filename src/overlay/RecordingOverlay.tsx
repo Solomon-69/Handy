@@ -72,13 +72,13 @@ const OVERLAY_FADE_MS = 300;
 // 13px padding on each side, the 16px badge and its 7px gap.
 const NOTICE_PILL_CHROME = 49;
 
-const OVERLAY_SCALE = { small: 0.85, medium: 1, large: 1.2 } as const;
+const OVERLAY_SCALE = { compact: 0.92, regular: 1.15 } as const;
 
 /** Applies the Appearance settings (size, opacity, accent) to the bar. */
 const applyAppearance = (settings: AppSettings) => {
   const root = document.documentElement;
-  const size = settings.overlay_size ?? "medium";
-  root.style.setProperty("--ov-scale", String(OVERLAY_SCALE[size] ?? 1));
+  const size = settings.overlay_size ?? "compact";
+  root.style.setProperty("--ov-scale", String(OVERLAY_SCALE[size] ?? 0.92));
   root.style.setProperty("--ov-opacity", String(settings.overlay_opacity ?? 1));
   root.dataset.accent = settings.overlay_accent ?? "default";
 };

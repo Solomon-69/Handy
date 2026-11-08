@@ -1470,7 +1470,7 @@ export type OverlayPosition = "top" | "bottom"
  */
 export type OverlayStyle = "none" | "minimal" | "live"
 export type OverlayHorizontal = "screen" | "active_window" | "custom"
-export type OverlaySize = "small" | "medium" | "large"
+export type OverlaySize = "compact" | "regular"
 export type PromptChipMode = "off" | "smart" | "ask" | "always"
 /**
  * A saved text block: say `trigger`, get `text`.

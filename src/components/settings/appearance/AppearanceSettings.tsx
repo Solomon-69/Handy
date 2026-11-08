@@ -20,7 +20,7 @@ export const AppearanceSettings: React.FC = () => {
   if (!settings) return null;
 
   const style = settings.overlay_style ?? "live";
-  const size = settings.overlay_size ?? "medium";
+  const size = settings.overlay_size ?? "compact";
   const position = settings.overlay_position ?? "bottom";
   const horizontal = settings.overlay_horizontal ?? "screen";
   const offset = settings.overlay_offset_x ?? 0;
@@ -75,7 +75,7 @@ export const AppearanceSettings: React.FC = () => {
       >
         <SegmentedControl
           ariaLabel={t(`${a}.size.title`)}
-          options={seg(`${a}.size`, ["small", "medium", "large"])}
+          options={seg(`${a}.size`, ["compact", "regular"])}
           value={size}
           onChange={(v) => updateSetting("overlay_size", v as typeof size)}
         />

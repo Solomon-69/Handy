@@ -922,10 +922,9 @@
       },
       "size": {
         "title": "Bar size",
-        "description": "Make the recording bar smaller or larger",
-        "small": "Small",
-        "medium": "Medium",
-        "large": "Large"
+        "description": "Compact is the slim default. Regular is bigger, for large screens or low vision.",
+        "compact": "Compact",
+        "regular": "Regular"
       },
       "position": {
         "title": "Vertical position",

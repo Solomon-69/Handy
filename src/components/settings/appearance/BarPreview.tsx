@@ -10,7 +10,7 @@ export const ACCENT_COLORS: Record<string, string> = {
   graphite: "#6b7280",
 };
 
-const SCALE: Record<string, number> = { small: 0.85, medium: 1, large: 1.2 };
+const SCALE: Record<string, number> = { compact: 0.92, regular: 1.15 };
 const BARS = [0.3, 0.5, 0.75, 0.95, 1, 0.95, 0.75, 0.5, 0.3];
 /** Neutral app icons for the little Dock; one uses the accent. */
 const DOCK = ["#8e8e93", "#a1a1a6", "accent", "#7c7c82", "#b0b0b5", "#96969b", "#88888d"];
@@ -41,7 +41,7 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
   showsWords,
 }) => {
   const color = ACCENT_COLORS[accent] ?? ACCENT_COLORS.default;
-  const scale = SCALE[size] ?? 1;
+  const scale = SCALE[size] ?? 0.92;
   const words = style === "live" && showsWords;
   const top = position === "top";
 
@@ -87,7 +87,7 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
               // True to size: the preview screen is ~460px wide for a ~1470pt screen.
               zoom: scale * 0.34,
               opacity,
-              width: words ? 260 : 172,
+              width: words ? 260 : 150,
               transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease",
               boxShadow: "0 8px 24px rgba(0,0,0,.28)",
             }}
