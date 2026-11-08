@@ -20,3 +20,10 @@ Left:
 - Settings UI Appearance section (src/components/settings, ThemeSelector move, live preview, smooth toggles).
 - Wispr features (snippets, self-correction first).
 - CI green, download artifact, codesign "Apple Development: solomond24@icloud.com (CCW242B7M5)", back up /Applications/Handy.app to ~/Applications/Handy-0.10.0-backup.app, install, `--preview-overlay` screenshot over Claude, measure.
+
+## Update 20:15
+- CI run 42511142583: test job green (362 passed incl. all new tests), macOS build green, installed to /Applications/Handy.app signed with Apple Development CCW242B7M5 (backup ~/Applications/Handy-0.10.0-backup.app). Settings file kept.
+- Proof: docs/proof/bar-centred-8-nov.png, wave centre = pill centre (0 px), dot and x mirrored within 0.5 px.
+- Active-window centring returns target=None until Accessibility is re-granted (new signature). Solomon must re-allow Handy in System Settings > Privacy > Accessibility.
+- Windows build broke before this branch (missing SPIRV-Headers); CI fix via vcpkg pushed, result pending.
+- Not done: dedicated keyboard shortcut for the prompt chip; Settings page not screenshotted live (opening the window would steal focus).
