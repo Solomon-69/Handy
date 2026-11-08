@@ -223,6 +223,8 @@ impl OverlaySize {
 #[serde(rename_all = "snake_case")]
 pub enum PromptChipMode {
     Off,
+    /// Rewrite only when the rules are sure it is a prompt; never asks.
+    Smart,
     Ask,
     Always,
 }
@@ -743,6 +745,7 @@ pub fn apply_appearance_setting(
         "prompt_chip_mode" => {
             settings.prompt_chip_mode = match value {
                 "off" => PromptChipMode::Off,
+                "smart" => PromptChipMode::Smart,
                 "ask" => PromptChipMode::Ask,
                 "always" => PromptChipMode::Always,
                 other => return Err(format!("Unknown prompt mode '{other}'")),
@@ -780,7 +783,7 @@ mod appearance_tests {
         assert_eq!(s.overlay_size, OverlaySize::Medium);
         assert_eq!(s.overlay_accent, "default");
         assert_eq!(s.overlay_opacity, 1.0);
-        assert_eq!(s.prompt_chip_mode, PromptChipMode::Ask);
+        assert_eq!(s.prompt_chip_mode, PromptChipMode::Smart);
         assert_eq!(s.prompt_chip_min_words, 40);
     }
 
@@ -864,7 +867,7 @@ fn default_overlay_opacity() -> f64 {
 }
 
 fn default_prompt_chip_mode() -> PromptChipMode {
-    PromptChipMode::Ask
+    PromptChipMode::Smart
 }
 
 fn default_prompt_chip_min_words() -> u32 {

@@ -22,7 +22,7 @@ export const AppearanceSettings: React.FC = () => {
   const offset = settings.overlay_offset_x ?? 0;
   const accent = settings.overlay_accent ?? "default";
   const opacity = settings.overlay_opacity ?? 1;
-  const chipMode = settings.prompt_chip_mode ?? "off";
+  const chipMode = settings.prompt_chip_mode ?? "smart";
   const minWords = settings.prompt_chip_min_words ?? 40;
 
   const seg = (base: string, values: string[]) =>
@@ -189,12 +189,12 @@ export const AppearanceSettings: React.FC = () => {
       >
         <SegmentedControl
           ariaLabel={t(`${a}.promptChip.title`)}
-          options={seg(`${a}.promptChip`, ["off", "ask", "always"])}
+          options={seg(`${a}.promptChip`, ["off", "smart", "ask", "always"])}
           value={chipMode}
           onChange={(v) => updateSetting("prompt_chip_mode", v as typeof chipMode)}
         />
       </SettingContainer>
-      {chipMode !== "off" && (
+      {(chipMode === "ask" || chipMode === "always") && (
         <SettingContainer
           title={t(`${a}.promptChip.minWords`)}
           description={t(`${a}.promptChip.description`)}

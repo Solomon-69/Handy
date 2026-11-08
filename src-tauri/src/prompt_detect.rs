@@ -1,0 +1,193 @@
+//! Smart detection: is this dictation a prompt for an AI, or normal talk?
+//!
+//! Offline rules, no model call, so it costs nothing. Built to be careful:
+//! wrongly rewriting an email or a chat message is worse than missing a
+//! prompt, so anything unclear is pasted as spoken.
+//!
+//! The app the text is going into is the strongest signal (Claude, ChatGPT,
+//! Cursor, a terminal). The wording only confirms it.
+
+/// What the rules decided.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Detected {
+    /// Clearly a prompt for an AI: rewrite it.
+    Prompt,
+    /// Normal talk, or not sure: paste as spoken.
+    Normal,
+}
+
+/// Fewer words than this are never rewritten.
+const MIN_WORDS: usize = 12;
+/// Score needed in an AI app (the app already counts for +3).
+const THRESHOLD_AI_APP: i32 = 5;
+/// Score needed anywhere else (higher, so wording alone rarely wins).
+const THRESHOLD_OTHER_APP: i32 = 7;
+
+/// Apps where people talk to an AI: chat apps, AI code editors, terminals.
+const AI_APPS: &[&str] = &[
+    "com.anthropic.claudefordesktop",
+    "com.openai.chat",
+    "com.openai.codex",
+    "com.todesktop.230313mzl4w4u92", // Cursor
+    "com.exafunction.windsurf",
+    "com.microsoft.vscode",
+    "dev.zed.zed",
+    "com.apple.terminal",
+    "com.googlecode.iterm2",
+    "dev.warp.warp-stable",
+    "com.mitchellh.ghostty",
+    "ai.perplexity.mac",
+];
+
+/// Apps for writing to people: never rewrite there.
+const PEOPLE_APPS: &[&str] = &[
+    "com.apple.mail",
+    "com.apple.mobilesms",
+    "com.apple.notes",
+    "com.apple.iwork.pages",
+    "com.microsoft.word",
+    "com.microsoft.outlook",
+    "com.tinyspeck.slackmacgap",
+    "com.hnc.discord",
+    "net.whatsapp.whatsapp",
+    "desktop.whatsapp",
+    "ru.keepcoder.telegram",
+    "com.facebook.archon",
+];
+
+const TASK_VERBS: &[&str] = &[
+    "build", "write", "make", "fix", "create", "generate", "implement", "refactor",
+    "add", "explain", "summarize", "summarise", "design", "rewrite", "translate",
+    "analyze", "analyse", "debug", "list", "draft", "find", "research", "update",
+    "change", "remove", "convert", "review", "test",
+];
+
+const AI_ADDRESS: &[&str] = &[
+    "i want you to", "i need you to", "can you", "could you", "please",
+    "you should", "you are a", "act as", "your task", "make sure you",
+    "make sure that", "don't forget to", "do not", "i'd like you to",
+];
+
+const SPEC_WORDS: &[&str] = &[
+    "must", "should", "requirements", "format", "steps", "step", "using",
+    "function", "file", "code", "app", "component", "feature", "output",
+    "example", "markdown", "table", "bullet", "screen", "button", "api",
+];
+
+const CHAT_MARKERS: &[&str] = &[
+    "hi ", "hey ", "hello ", "dear ", "thanks", "thank you", "lol", "haha",
+    "love you", "miss you", "best regards", "kind regards", "cheers",
+    "yesterday", "last night", "how are you", "see you", "talk soon",
+];
+
+fn words(text: &str) -> Vec<String> {
+    text.split_whitespace()
+        .map(|w| {
+            w.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'')
+                .to_lowercase()
+        })
+        .filter(|w| !w.is_empty())
+        .collect()
+}
+
+/// Score the wording alone (no app bonus). Positive = prompt-like.
+pub fn wording_score(text: &str) -> i32 {
+    let lower = format!(" {} ", words(text).join(" "));
+    let w = words(text);
+    let mut score = 0;
+    if w.iter().take(6).any(|x| TASK_VERBS.contains(&x.as_str())) {
+        score += 2;
+    }
+    if AI_ADDRESS.iter().any(|p| lower.contains(&format!(" {p} "))) {
+        score += 2;
+    }
+    let spec = SPEC_WORDS
+        .iter()
+        .filter(|s| w.iter().any(|x| x == *s))
+        .count() as i32;
+    score += spec.min(2);
+    score += match w.len() {
+        n if n >= 120 => 2,
+        n if n >= 60 => 1,
+        _ => 0,
+    };
+    let chat = CHAT_MARKERS
+        .iter()
+        .filter(|m| lower.contains(&format!(" {} ", m.trim())))
+        .count() as i32;
+    score -= (chat * 2).min(4);
+    score
+}
+
+/// Decide for a dictation going into the app with this bundle id.
+pub fn detect(text: &str, bundle_id: Option<&str>) -> Detected {
+    if words(text).len() < MIN_WORDS {
+        return Detected::Normal;
+    }
+    let app = bundle_id.unwrap_or("").to_lowercase();
+    if PEOPLE_APPS.contains(&app.as_str()) {
+        return Detected::Normal;
+    }
+    let in_ai_app = AI_APPS.contains(&app.as_str());
+    let score = wording_score(text) + if in_ai_app { 3 } else { 0 };
+    let needed = if in_ai_app { THRESHOLD_AI_APP } else { THRESHOLD_OTHER_APP };
+    if score >= needed {
+        Detected::Prompt
+    } else {
+        Detected::Normal
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const CLAUDE: Option<&str> = Some("com.anthropic.claudefordesktop");
+    const MAIL: Option<&str> = Some("com.apple.mail");
+    const SAFARI: Option<&str> = Some("com.apple.Safari");
+
+    const PROMPT: &str = "Build a settings screen for the app with a dark mode toggle, \
+        make sure the toggle slides smoothly and use the existing button component";
+
+    #[test]
+    fn prompt_in_ai_app_is_detected() {
+        assert_eq!(detect(PROMPT, CLAUDE), Detected::Prompt);
+        assert_eq!(
+            detect("I want you to write a function that sorts the list of users by name and returns the first ten", Some("com.todesktop.230313mzl4w4u92")),
+            Detected::Prompt
+        );
+    }
+
+    #[test]
+    fn never_rewrites_in_mail_or_chat_apps() {
+        assert_eq!(detect(PROMPT, MAIL), Detected::Normal);
+        assert_eq!(detect(PROMPT, Some("com.tinyspeck.slackmacgap")), Detected::Normal);
+    }
+
+    #[test]
+    fn chatty_text_stays_normal_even_in_ai_app() {
+        let chat = "Hey thanks so much for yesterday it was really lovely to see you and talk about the trip, see you soon";
+        assert_eq!(detect(chat, CLAUDE), Detected::Normal);
+    }
+
+    #[test]
+    fn short_text_is_never_rewritten() {
+        assert_eq!(detect("Fix the button please", CLAUDE), Detected::Normal);
+    }
+
+    #[test]
+    fn other_apps_need_strong_wording() {
+        assert_eq!(detect(PROMPT, SAFARI), Detected::Normal);
+        let strong = "I want you to build a feature for the app that must show a table of steps, \
+            use the existing component and make sure the output is markdown with an example for each step \
+            and a short explanation of the function, then test the code and fix anything that breaks \
+            and keep it simple and readable for everyone on the team please";
+        assert_eq!(detect(strong, SAFARI), Detected::Prompt);
+    }
+
+    #[test]
+    fn normal_email_text_stays_normal() {
+        let email = "Can you send me the invoice by Friday, I need it for the accounts and the meeting with the bank next week";
+        assert_eq!(detect(email, SAFARI), Detected::Normal);
+    }
+}

@@ -357,17 +357,17 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  height: 18px;
+  height: 26px;
   flex: none;
 }
 .swave i {
   width: 4px;
-  min-height: 3px;
-  max-height: 18px;
+  min-height: 4px;
+  max-height: 26px;
   border-radius: 2px;
   background: var(--s-accent);
   transition:
-    height 80ms linear,
+    height 60ms ease-out,
     background-color 180ms ease,
     opacity 180ms ease;
 }

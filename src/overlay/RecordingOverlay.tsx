@@ -31,6 +31,34 @@ const isNoticeState = (state: OverlayState) =>
 // Number of reactive bars in the waveform (the simple, smoothed style shared by
 // every overlay form). Mic levels arrive as 16 FFT buckets; we take the first N.
 const WAVE_BARS = 9;
+// Wave emphasis. Levels are scaled against the recent loudest moment
+// (auto-gain), so normal speech fills the bar like Wispr Flow does, then
+// shaped so the middle bars reach highest.
+const WAVE_ATTACK = 0.6;
+const WAVE_RELEASE = 0.18;
+const WAVE_PEAK_FLOOR = 0.12;
+const WAVE_PEAK_DECAY = 0.985;
+const WAVE_MIN_PX = 4;
+const WAVE_MAX_PX = 26;
+
+/** Auto-gain + centre-weighted shape; returns 0..1 per bar. */
+function shapeWave(raw: number[], peakRef: { current: number }): number[] {
+  const loudest = Math.max(...raw, 0);
+  peakRef.current = Math.max(
+    WAVE_PEAK_FLOOR,
+    loudest,
+    peakRef.current * WAVE_PEAK_DECAY,
+  );
+  const mid = (raw.length - 1) / 2;
+  return raw.map((v, i) => {
+    const centre = 0.6 + 0.4 * Math.cos(((i - mid) / (mid + 1)) * (Math.PI / 2));
+    return Math.min(1, (v / peakRef.current) * centre);
+  });
+}
+
+function waveHeight(v: number): number {
+  return WAVE_MIN_PX + Math.pow(v, 0.65) * (WAVE_MAX_PX - WAVE_MIN_PX);
+}
 
 // Only call out a model load in the Live preview once it has run this long.
 // Warm loads finish in well under this (~0.2s on Apple Silicon, ~1.5s on a
@@ -101,6 +129,7 @@ const RecordingOverlay: React.FC = () => {
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const smoothedLevelsRef = useRef<number[]>(Array(16).fill(0));
+  const wavePeakRef = useRef(WAVE_PEAK_FLOOR);
   // Live-text scroll-back: the text region "sticks" to the newest line while the
   // user is at the bottom; if they scroll up to read history, auto-follow pauses
   // until they scroll back down.
@@ -125,6 +154,7 @@ const RecordingOverlay: React.FC = () => {
         if (overlayState === "recording" || overlayState === "streaming") {
           setCaptureReady(false);
           smoothedLevelsRef.current = Array(16).fill(0);
+          wavePeakRef.current = WAVE_PEAK_FLOOR;
           setLevels(Array(WAVE_BARS).fill(0));
           setStreamText({ committed: "", tentative: "" });
         }
@@ -197,12 +227,15 @@ const RecordingOverlay: React.FC = () => {
         const newLevels = event.payload as number[];
         // Exponential smoothing across the 16 buckets, then take the first N
         // bars for the shared waveform.
+        // Fast rise, slow fall (like Wispr Flow): bars jump with each word
+        // and settle gently instead of crawling.
         const smoothed = smoothedLevelsRef.current.map((prev, i) => {
           const target = newLevels[i] || 0;
-          return prev * 0.7 + target * 0.3;
+          const k = target > prev ? WAVE_ATTACK : WAVE_RELEASE;
+          return prev + (target - prev) * k;
         });
         smoothedLevelsRef.current = smoothed;
-        setLevels(smoothed.slice(0, WAVE_BARS));
+        setLevels(shapeWave(smoothed.slice(0, WAVE_BARS), wavePeakRef));
       });
 
       const unlistenStream = await events.streamTextEvent.listen((event) => {
@@ -329,7 +362,7 @@ const RecordingOverlay: React.FC = () => {
         <i
           key={i}
           style={{
-            height: `${Math.max(3, Math.min(18, 3 + Math.pow(v, 0.7) * 15))}px`,
+            height: `${waveHeight(v)}px`,
           }}
         />
       ))}

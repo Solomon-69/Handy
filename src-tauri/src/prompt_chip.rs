@@ -46,7 +46,10 @@ pub fn prompt_chip_choose(choice: String) -> Result<(), String> {
 /// Blocks for at most CHIP_TIMEOUT_MS while the choice is up.
 pub fn resolve(app: &AppHandle, text: String) -> String {
     let s = settings::get_settings(app);
-    let choice = match decide(s.prompt_chip_mode, s.prompt_chip_min_words, &text) {
+    let app_id = crate::active_window::frontmost_bundle_id();
+    let decision = decide(s.prompt_chip_mode, s.prompt_chip_min_words, &text, app_id.as_deref());
+    log::info!("prompt chip: mode={:?} app={:?} decision={decision:?}", s.prompt_chip_mode, app_id);
+    let choice = match decision {
         ChipDecision::Paste => return text,
         ChipDecision::RewriteNow => Choice::TurnIntoPrompt,
         ChipDecision::Ask => ask(app, &text),
@@ -138,10 +141,19 @@ pub fn word_count(text: &str) -> usize {
     text.split_whitespace().count()
 }
 
-pub fn decide(mode: PromptChipMode, min_words: u32, text: &str) -> ChipDecision {
+pub fn decide(
+    mode: PromptChipMode,
+    min_words: u32,
+    text: &str,
+    app_id: Option<&str>,
+) -> ChipDecision {
     let long_enough = word_count(text) >= min_words as usize;
     match mode {
         PromptChipMode::Off => ChipDecision::Paste,
+        PromptChipMode::Smart => match crate::prompt_detect::detect(text, app_id) {
+            crate::prompt_detect::Detected::Prompt => ChipDecision::RewriteNow,
+            crate::prompt_detect::Detected::Normal => ChipDecision::Paste,
+        },
         _ if !long_enough => ChipDecision::Paste,
         PromptChipMode::Ask => ChipDecision::Ask,
         PromptChipMode::Always => ChipDecision::RewriteNow,
@@ -199,21 +211,31 @@ mod tests {
     #[test]
     fn off_never_asks() {
         let long = "word ".repeat(500);
-        assert_eq!(decide(PromptChipMode::Off, 40, &long), ChipDecision::Paste);
+        assert_eq!(decide(PromptChipMode::Off, 40, &long, None), ChipDecision::Paste);
     }
 
     #[test]
     fn short_dictations_paste_straight_away() {
         let short = "word ".repeat(39);
-        assert_eq!(decide(PromptChipMode::Ask, 40, &short), ChipDecision::Paste);
-        assert_eq!(decide(PromptChipMode::Always, 40, &short), ChipDecision::Paste);
+        assert_eq!(decide(PromptChipMode::Ask, 40, &short, None), ChipDecision::Paste);
+        assert_eq!(decide(PromptChipMode::Always, 40, &short, None), ChipDecision::Paste);
     }
 
     #[test]
     fn long_dictations_ask_or_rewrite() {
         let long = "word ".repeat(40);
-        assert_eq!(decide(PromptChipMode::Ask, 40, &long), ChipDecision::Ask);
-        assert_eq!(decide(PromptChipMode::Always, 40, &long), ChipDecision::RewriteNow);
+        assert_eq!(decide(PromptChipMode::Ask, 40, &long, None), ChipDecision::Ask);
+        assert_eq!(decide(PromptChipMode::Always, 40, &long, None), ChipDecision::RewriteNow);
+    }
+
+    #[test]
+    fn smart_rewrites_only_clear_prompts() {
+        let prompt = "Build a settings screen for the app with a dark mode toggle, \
+            make sure the toggle slides smoothly and use the existing button component";
+        let claude = Some("com.anthropic.claudefordesktop");
+        assert_eq!(decide(PromptChipMode::Smart, 40, prompt, claude), ChipDecision::RewriteNow);
+        assert_eq!(decide(PromptChipMode::Smart, 40, prompt, Some("com.apple.mail")), ChipDecision::Paste);
+        assert_eq!(decide(PromptChipMode::Smart, 40, "hello there", claude), ChipDecision::Paste);
     }
 
     #[test]

@@ -228,6 +228,19 @@ mod tests {
     }
 
     #[test]
+    fn spoken_examples_end_to_end() {
+        // Solomon's own examples, as the speech model writes them.
+        assert_eq!(apply("I want strawberries, comma, no, I want bananas.", true, &[]), "I want bananas.");
+        assert_eq!(apply("I want strawberries comma no I want bananas", true, &[]), "I want bananas");
+        assert_eq!(
+            apply("Send it to me comma then call Sam full stop", true, &[]),
+            "Send it to me, then call Sam."
+        );
+        assert_eq!(apply("Use and slash or here", true, &[]), "Use and/or here");
+        assert_eq!(apply("I need twenty five chairs", true, &[]), "I need 25 chairs");
+    }
+
+    #[test]
     fn plain_text_is_untouched() {
         let t = "I mean it when I say no to this.";
         assert_eq!(apply_corrections(t), t);
