@@ -27,3 +27,9 @@ Left:
 - Active-window centring returns target=None until Accessibility is re-granted (new signature). Solomon must re-allow Handy in System Settings > Privacy > Accessibility.
 - Windows build broke before this branch (missing SPIRV-Headers); CI fix via vcpkg pushed, result pending.
 - Not done: dedicated keyboard shortcut for the prompt chip; Settings page not screenshotted live (opening the window would steal focus).
+
+## Update 20:20 (Solomon feedback)
+- Bar: vertical now always screen bottom (was covering the chat box); horizontal follows focused text box. Needs Accessibility re-granted (old Handy.app entry must be removed with minus and re-added).
+- Accent: navy default, applies app-wide (theme.css data-accent), pink kept as swatch.
+- Prompt chip renamed "Prompt engineer", default Ask. Lives in General > Appearance.
+- Solomon says Wispr Flow reverse engineering is NOT done enough. Still to build (docs/wispr-feature-audit.md): Command Mode (shortcut + spoken instruction rewrites selected text, Apple Intelligence), per-app styles, paste-last-dictation shortcut, usage stats (words, WPM), history re-paste, a dedicated "Prompt engineer" shortcut, and a Wispr-like flow bar animation. Also try the Wispr app UI live again (it showed no window last time) after quitting/relaunching it.
