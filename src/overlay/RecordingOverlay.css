@@ -483,34 +483,38 @@
   --s-accent-soft: color-mix(in srgb, var(--s-accent) 20%, transparent);
 }
 
-/* "Turn into a prompt" choice: three quiet buttons in the pill, with a thin
-   countdown line; nothing picked = paste as is. */
+/* Prompt engineer choice: same width as the working bar, three equal
+   buttons that lift slightly on hover; a thin countdown line underneath.
+   Nothing picked = paste as is. */
 .scard.compact.cchip {
-  width: 256px;
+  width: var(--ov-work-w);
 }
 .sbase.schip {
   position: relative;
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   padding: 0 6px;
 }
 .schip-b {
   min-height: 28px;
-  padding: 0 9px;
+  padding: 0 4px;
   border: 0;
   border-radius: 14px;
   font: 500 11.5px var(--s-font);
   text-align: center;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--color-text);
   background: var(--s-hair);
   cursor: pointer;
   transition:
-    background-color 150ms ease,
-    transform 100ms ease;
+    transform 160ms cubic-bezier(0.34, 1.4, 0.64, 1),
+    background-color 150ms ease;
 }
 .schip-b:hover {
+  transform: scale(1.07);
   background: var(--s-accent-soft);
 }
 .schip-b:active {
@@ -522,15 +526,22 @@
 }
 .schip-timer {
   position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 3px;
+  left: 14px;
+  right: 14px;
+  bottom: 2px;
   height: 2px;
   border-radius: 1px;
   background: var(--s-accent);
   opacity: 0.45;
   transform-origin: left center;
   animation: schip-countdown linear forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .schip-b,
+  .schip-timer {
+    transition: none;
+    animation: none;
+  }
 }
 @keyframes schip-countdown {
   from {

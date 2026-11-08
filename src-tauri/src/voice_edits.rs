@@ -9,11 +9,21 @@ use crate::settings::Snippet;
 const MAX_CORRECTED_WORDS: usize = 6;
 
 const REPLACE_CUES: [&str; 3] = ["no i mean", "sorry i mean", "no wait i mean"];
+/// Cues that start a restatement: "I want strawberries, no, I want bananas".
+/// Longest first, so "no wait" wins over "no".
+const RESTATE_CUES: [&str; 6] = ["no wait", "or rather", "i mean", "actually", "sorry", "no"];
+/// Words after the cue that must repeat earlier words before we drop the
+/// earlier version (2+ avoids false hits like "no, I don't think so").
+const MIN_RESTATED_WORDS: usize = 2;
+const MAX_RESTATED_WORDS: usize = 4;
+/// How far back a restatement may reach.
+const RESTATE_WINDOW: usize = 25;
+
 const SCRATCH_CUES: [&str; 2] = ["scratch that", "delete that"];
 
 pub fn apply(text: &str, corrections: bool, snippets: &[Snippet]) -> String {
     let corrected = if corrections {
-        apply_corrections(text)
+        crate::spoken_format::apply(&apply_corrections(text))
     } else {
         text.to_string()
     };
@@ -46,6 +56,24 @@ fn cue_at(words: &[&str], i: usize, cues: &[&str]) -> Option<usize> {
     })
 }
 
+/// If a restatement cue sits at `i` and the words after it repeat earlier
+/// words, returns (where to cut `out`, words to skip for the cue).
+fn restatement_cut(words: &[&str], i: usize, out: &[String]) -> Option<(usize, usize)> {
+    let n = cue_at(words, i, &RESTATE_CUES)?;
+    let after = &words[i + n..];
+    let from = out.len().saturating_sub(RESTATE_WINDOW);
+    for k in (MIN_RESTATED_WORDS..=MAX_RESTATED_WORDS.min(after.len())).rev() {
+        let target: Vec<String> = after[..k].iter().map(|w| norm(w)).collect();
+        let hit = (from..out.len().saturating_sub(k - 1))
+            .rev()
+            .find(|&p| (0..k).all(|j| norm(&out[p + j]) == target[j]));
+        if let Some(p) = hit {
+            return Some((p, n));
+        }
+    }
+    None
+}
+
 pub fn apply_corrections(text: &str) -> String {
     let words: Vec<&str> = text.split_whitespace().collect();
     let mut out: Vec<String> = Vec::with_capacity(words.len());
@@ -60,6 +88,11 @@ pub fn apply_corrections(text: &str) -> String {
                 out.pop();
             }
             i += n;
+            continue;
+        }
+        if let Some(cut) = restatement_cut(&words, i, &out) {
+            out.truncate(cut.0);
+            i += cut.1;
             continue;
         }
         if let Some(n) = cue_at(&words, i, &REPLACE_CUES) {
@@ -168,6 +201,21 @@ mod tests {
             apply_corrections("Fly to New York no I mean Boston"),
             "Fly to Boston"
         );
+    }
+
+    #[test]
+    fn restatement_keeps_only_the_correction() {
+        assert_eq!(
+            apply_corrections("I want strawberries, no, I want bananas."),
+            "I want bananas."
+        );
+        assert_eq!(
+            apply_corrections("Book it for Monday actually book it for Tuesday"),
+            "Book it for Tuesday"
+        );
+        // A "no" that is not a restatement stays.
+        let t = "I said no, I don't think so.";
+        assert_eq!(apply_corrections(t), t);
     }
 
     #[test]

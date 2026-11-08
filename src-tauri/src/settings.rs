@@ -163,6 +163,41 @@ pub struct Snippet {
     pub text: String,
 }
 
+/// How dictated text is reworded for one app.
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
+#[serde(rename_all = "snake_case")]
+pub enum WritingStyle {
+    None,
+    Formal,
+    Casual,
+    Code,
+}
+
+/// A writing style for the app with this bundle id (e.g. com.apple.mail).
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct AppStyle {
+    pub bundle_id: String,
+    pub style: WritingStyle,
+}
+
+/// Binding id of the "paste last dictation" shortcut.
+pub const PASTE_LAST_BINDING: &str = "paste_last";
+/// Binding id of the Command Mode shortcut.
+pub const COMMAND_MODE_BINDING: &str = "command_mode";
+
+/// Whether a binding should be registered with the keyboard backend.
+/// Optional bindings stay unregistered until their feature is switched on, so
+/// they can never steal a key combination by default. "cancel" is managed
+/// separately by the recording lifecycle.
+pub fn binding_enabled(id: &str, settings: &AppSettings) -> bool {
+    match id {
+        "transcribe_with_post_process" => settings.post_process_enabled,
+        PASTE_LAST_BINDING => settings.paste_last_shortcut_enabled,
+        COMMAND_MODE_BINDING => settings.command_mode_enabled,
+        _ => true,
+    }
+}
+
 /// Recording bar size.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
@@ -639,6 +674,24 @@ pub struct AppSettings {
     pub voice_corrections_enabled: bool,
     #[serde(default)]
     pub snippets: Vec<Snippet>,
+    /// Registers the "paste last dictation" shortcut. Off by default.
+    #[serde(default)]
+    pub paste_last_shortcut_enabled: bool,
+    /// Registers the Command Mode shortcut. Off by default.
+    #[serde(default)]
+    pub command_mode_enabled: bool,
+    /// Per-app writing styles, matched on the frontmost app's bundle id.
+    #[serde(default)]
+    pub app_styles: Vec<AppStyle>,
+}
+
+/// Parses "true" / "false" from the Settings page.
+fn parse_bool(value: &str) -> Result<bool, String> {
+    match value {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        other => Err(format!("'{other}' is not true or false")),
+    }
 }
 
 fn default_voice_corrections_enabled() -> bool {
@@ -709,6 +762,8 @@ pub fn apply_appearance_setting(
                 other => return Err(format!("'{other}' is not true or false")),
             }
         }
+        "paste_last_shortcut_enabled" => settings.paste_last_shortcut_enabled = parse_bool(value)?,
+        "command_mode_enabled" => settings.command_mode_enabled = parse_bool(value)?,
         other => return Err(format!("Unknown appearance setting '{other}'")),
     }
     Ok(())
@@ -721,7 +776,7 @@ mod appearance_tests {
     #[test]
     fn new_fields_default_when_missing_from_store() {
         let s: AppSettings = serde_json::from_str("{}").unwrap();
-        assert_eq!(s.overlay_horizontal, OverlayHorizontal::ActiveWindow);
+        assert_eq!(s.overlay_horizontal, OverlayHorizontal::Screen);
         assert_eq!(s.overlay_size, OverlaySize::Medium);
         assert_eq!(s.overlay_accent, "default");
         assert_eq!(s.overlay_opacity, 1.0);
@@ -753,10 +808,47 @@ mod appearance_tests {
         assert_eq!(s.overlay_accent, before.overlay_accent);
         assert_eq!(s.overlay_opacity, before.overlay_opacity);
     }
+
+    #[test]
+    fn optional_bindings_are_off_until_switched_on() {
+        let mut s = AppSettings::default();
+        assert!(s.bindings.contains_key(PASTE_LAST_BINDING));
+        assert!(s.bindings.contains_key(COMMAND_MODE_BINDING));
+        assert!(!binding_enabled(PASTE_LAST_BINDING, &s));
+        assert!(!binding_enabled(COMMAND_MODE_BINDING, &s));
+        assert!(binding_enabled("transcribe", &s));
+
+        apply_appearance_setting(&mut s, "paste_last_shortcut_enabled", "true").unwrap();
+        apply_appearance_setting(&mut s, "command_mode_enabled", "true").unwrap();
+        assert!(binding_enabled(PASTE_LAST_BINDING, &s));
+        assert!(binding_enabled(COMMAND_MODE_BINDING, &s));
+        assert!(apply_appearance_setting(&mut s, "command_mode_enabled", "yes").is_err());
+        assert!(s.command_mode_enabled);
+    }
+
+    #[test]
+    fn post_process_binding_follows_its_toggle() {
+        let mut s = AppSettings::default();
+        s.post_process_enabled = false;
+        assert!(!binding_enabled("transcribe_with_post_process", &s));
+        s.post_process_enabled = true;
+        assert!(binding_enabled("transcribe_with_post_process", &s));
+    }
+
+    #[test]
+    fn app_styles_default_empty_and_round_trip() {
+        let s: AppSettings = serde_json::from_str("{}").unwrap();
+        assert!(s.app_styles.is_empty());
+        assert!(!s.paste_last_shortcut_enabled);
+        let styles: Vec<AppStyle> =
+            serde_json::from_str(r#"[{"bundle_id":"com.apple.mail","style":"formal"}]"#).unwrap();
+        assert_eq!(styles[0].style, WritingStyle::Formal);
+    }
 }
 
 fn default_overlay_horizontal() -> OverlayHorizontal {
-    OverlayHorizontal::ActiveWindow
+    // Bottom centre of the screen, like Wispr Flow.
+    OverlayHorizontal::Screen
 }
 
 fn default_overlay_size() -> OverlaySize {
@@ -1206,6 +1298,35 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: "escape".to_string(),
         },
     );
+    // Optional shortcuts: only registered once switched on (see binding_enabled).
+    #[cfg(target_os = "windows")]
+    let (paste_last_shortcut, command_mode_shortcut) = ("ctrl+alt+shift+v", "ctrl+alt+shift+c");
+    #[cfg(target_os = "macos")]
+    let (paste_last_shortcut, command_mode_shortcut) = ("option+shift+v", "option+shift+c");
+    #[cfg(target_os = "linux")]
+    let (paste_last_shortcut, command_mode_shortcut) = ("ctrl+alt+shift+v", "ctrl+alt+shift+c");
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    let (paste_last_shortcut, command_mode_shortcut) = ("alt+shift+v", "alt+shift+c");
+    bindings.insert(
+        PASTE_LAST_BINDING.to_string(),
+        ShortcutBinding {
+            id: PASTE_LAST_BINDING.to_string(),
+            name: "Paste Last Dictation".to_string(),
+            description: "Pastes your most recent dictation again.".to_string(),
+            default_binding: paste_last_shortcut.to_string(),
+            current_binding: paste_last_shortcut.to_string(),
+        },
+    );
+    bindings.insert(
+        COMMAND_MODE_BINDING.to_string(),
+        ShortcutBinding {
+            id: COMMAND_MODE_BINDING.to_string(),
+            name: "Command Mode".to_string(),
+            description: "Speak an instruction to rewrite the selected text.".to_string(),
+            default_binding: command_mode_shortcut.to_string(),
+            current_binding: command_mode_shortcut.to_string(),
+        },
+    );
 
     AppSettings {
         settings_schema_version: default_settings_schema_version(),
@@ -1284,6 +1405,9 @@ pub fn get_default_settings() -> AppSettings {
         prompt_chip_min_words: default_prompt_chip_min_words(),
         voice_corrections_enabled: default_voice_corrections_enabled(),
         snippets: Vec::new(),
+        paste_last_shortcut_enabled: false,
+        command_mode_enabled: false,
+        app_styles: Vec::new(),
     }
 }
 

@@ -430,7 +430,7 @@ pub fn init_shortcuts(app: &AppHandle) -> Result<(), String> {
             continue;
         }
         // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !user_settings.post_process_enabled {
+        if !settings::binding_enabled(&id, &user_settings) {
             continue;
         }
 

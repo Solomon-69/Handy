@@ -348,6 +348,14 @@
           "transcribe_with_post_process": {
             "name": "Post-Processing Hotkey",
             "description": "Optional: A dedicated hotkey that always applies AI post-processing to your transcription."
+          },
+          "paste_last": {
+            "name": "Paste Last Dictation",
+            "description": "Pastes your most recent dictation again into the app you are using."
+          },
+          "command_mode": {
+            "name": "Command Mode Shortcut",
+            "description": "Select text, hold this shortcut and say what to change. The selection is rewritten on this Mac and pasted back."
           }
         },
         "errors": {
@@ -716,7 +724,9 @@
       "showMore": "Show more",
       "showLess": "Show less",
       "dropTitle": "Drop to transcribe",
-      "dropDescription": "It'll show up in History."
+      "dropDescription": "It'll show up in History.",
+      "pasteAgain": "Paste again",
+      "pasteError": "Could not paste this entry"
     },
     "debug": {
       "title": "Debug",
@@ -965,8 +975,8 @@
     "snippets": {
       "title": "Snippets and corrections",
       "corrections": {
-        "title": "Spoken corrections",
-        "description": "Say \"scratch that\" to drop the last sentence, or \"no I mean\" to replace the word before it"
+        "title": "Smart corrections and formatting",
+        "description": "Keeps only what you meant when you correct yourself (\"I want strawberries, no, I want bananas\" becomes \"I want bananas\"), turns \"comma\", \"full stop\", \"slash\" and \"new line\" into symbols, and writes numbers of ten or more as digits"
       },
       "list": {
         "title": "Snippets",
@@ -976,6 +986,43 @@
       "text": "Type this",
       "add": "Add snippet",
       "remove": "Remove"
+    },
+    "extraShortcuts": {
+      "title": "Extra shortcuts",
+      "pasteLast": {
+        "title": "Paste last dictation shortcut",
+        "description": "Adds a shortcut that pastes your most recent dictation again. Off by default so it never takes a key you use."
+      },
+      "pasteNow": "Paste last dictation now",
+      "commandMode": {
+        "title": "Command Mode",
+        "description": "Select text, hold the Command Mode shortcut and speak an instruction such as \"make this shorter\". Uses Apple Intelligence on this Mac; nothing is sent online."
+      }
+    },
+    "appStyles": {
+      "title": "Per-app styles",
+      "list": {
+        "title": "Writing style by app",
+        "description": "Dictations pasted into these apps are reworded on this Mac with Apple Intelligence. Use the app's bundle id, for example com.apple.mail or com.tinyspeck.slackmacgap."
+      },
+      "bundleId": "Bundle id",
+      "add": "Add app",
+      "remove": "Remove app",
+      "style": {
+        "none": "None",
+        "formal": "Formal",
+        "casual": "Casual",
+        "code": "Code"
+      }
+    },
+    "stats": {
+      "title": "Your stats",
+      "totalWords": "Words dictated",
+      "thisWeek": "Last 7 days",
+      "wpm": "Words per minute",
+      "streak": "Day streak",
+      "noValue": "–",
+      "note": "Counted from your saved history on this Mac."
     }
   },
   "footer": {
@@ -1057,8 +1104,10 @@
     "loadingModel": "Loading model...",
     "chip": {
       "asIs": "As is",
-      "prompt": "Prompt engineer",
-      "clean": "Clean up"
+      "prompt": "Prompt",
+      "clean": "Clean up",
+      "engineering": "Prompt engineering...",
+      "cleaning": "Cleaning up..."
     }
   },
   "secureInput": {

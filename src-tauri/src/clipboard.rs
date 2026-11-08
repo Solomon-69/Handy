@@ -845,6 +845,47 @@ fn should_send_auto_submit(auto_submit: bool, paste_method: PasteMethod) -> bool
 
 /// Pastes `text` into the focused app. Call from a worker thread, never the main
 /// thread: it sleeps between steps (input injection hops via `with_enigo`).
+/// Written to the clipboard before Cmd+C, so a copy that changes nothing
+/// (no selection) can be told apart from a real one.
+const COPY_PROBE: &str = "\u{2063}handy-copy-probe\u{2063}";
+const COPY_KEY_HOLD_MS: u64 = 30;
+const COPY_POLL_MS: u64 = 40;
+const COPY_TIMEOUT_MS: u64 = 800;
+
+/// Copies the selection of the app in front (Cmd+C) and returns it. The
+/// previous clipboard text is put back afterwards. Err when nothing is
+/// selected or the copy keystroke fails. Never call on the main thread.
+pub(crate) fn copy_selection(app_handle: &AppHandle) -> Result<String, String> {
+    let _paste = PASTE_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
+    let saved_text = app_handle.clipboard().read_text().ok();
+    write_text_to_clipboard(app_handle, COPY_PROBE)?;
+    let copied = with_enigo(app_handle, |enigo| {
+        input::send_copy_command(enigo, COPY_KEY_HOLD_MS)
+    })
+    .and_then(|()| wait_for_copy(app_handle));
+    let restore = saved_text.unwrap_or_default();
+    if let Err(e) = write_text_to_clipboard(app_handle, &restore) {
+        log::warn!("Could not restore the clipboard after copying the selection: {e}");
+    }
+    copied
+}
+
+fn wait_for_copy(app_handle: &AppHandle) -> Result<String, String> {
+    let polls = COPY_TIMEOUT_MS / COPY_POLL_MS;
+    for _ in 0..polls {
+        std::thread::sleep(Duration::from_millis(COPY_POLL_MS));
+        if let Some(text) = copied_text(app_handle.clipboard().read_text().ok()) {
+            return Ok(text);
+        }
+    }
+    Err("Nothing is selected".to_string())
+}
+
+/// The clipboard text after a copy, when the copy replaced the probe.
+fn copied_text(clipboard: Option<String>) -> Option<String> {
+    clipboard.filter(|t| t != COPY_PROBE && !t.trim().is_empty())
+}
+
 pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
     let _paste = PASTE_LOCK.lock().unwrap_or_else(PoisonError::into_inner);
     let settings = get_settings(&app_handle);
@@ -950,6 +991,14 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn copy_probe_left_in_place_means_nothing_was_copied() {
+        assert_eq!(copied_text(Some(COPY_PROBE.to_string())), None);
+        assert_eq!(copied_text(Some("  ".to_string())), None);
+        assert_eq!(copied_text(None), None);
+        assert_eq!(copied_text(Some("picked".to_string())).as_deref(), Some("picked"));
+    }
 
     /// The long-dictation glitch: the target app reads the pasted data some
     /// time after Cmd+V. Simulate that read and check what it gets.

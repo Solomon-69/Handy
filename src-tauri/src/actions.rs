@@ -107,6 +107,19 @@ pub trait ShortcutAction: Send + Sync {
 // Transcribe Action
 struct TranscribeAction {
     post_process: bool,
+    /// Command Mode: the speech is an instruction that rewrites the
+    /// selected text, which is then pasted over the selection.
+    command_mode: bool,
+}
+
+/// What the paste thread pastes: the Command Mode rewrite of the selection,
+/// or the dictation with its app style and prompt chip applied.
+fn text_to_paste(app: &AppHandle, text: String, command_mode: bool) -> Result<String, String> {
+    if command_mode {
+        return crate::command_mode::rewrite_selection(app, &text);
+    }
+    let styled = crate::app_styles::apply(app, text);
+    Ok(crate::prompt_chip::resolve(app, styled))
 }
 
 /// Field name for structured output JSON schema
@@ -692,6 +705,7 @@ impl ShortcutAction for TranscribeAction {
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
+        let command_mode = self.command_mode;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -878,10 +892,13 @@ impl ShortcutAction for TranscribeAction {
                                         let owns_ui =
                                             || RECORDING_SESSION.load(Ordering::SeqCst) == session;
                                         let (outcome, notice) =
-                                            match utils::paste(
-                                                crate::prompt_chip::resolve(&ah_clone, final_text),
-                                                ah_clone.clone(),
-                                            ) {
+                                            match text_to_paste(
+                                                &ah_clone,
+                                                final_text,
+                                                command_mode,
+                                            )
+                                            .and_then(|text| utils::paste(text, ah_clone.clone()))
+                                            {
                                                 Ok(()) => {
                                                     debug!(
                                                         "Text pasted successfully in {:?}",
@@ -1011,6 +1028,18 @@ impl ShortcutAction for TranscribeAction {
 }
 
 // Cancel Action
+/// Re-pastes the newest dictation. Fires on key release, so the shortcut's
+/// modifiers are not held during the paste keystroke.
+struct PasteLastAction;
+
+impl ShortcutAction for PasteLastAction {
+    fn start(&self, _app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {}
+
+    fn stop(&self, app: &AppHandle, _binding_id: &str, _shortcut_str: &str) {
+        crate::paste_last::paste_latest_from_shortcut(app);
+    }
+}
+
 struct CancelAction;
 
 impl ShortcutAction for CancelAction {
@@ -1053,11 +1082,26 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "transcribe".to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            command_mode: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+        Arc::new(TranscribeAction {
+            post_process: true,
+            command_mode: false,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        crate::settings::COMMAND_MODE_BINDING.to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            command_mode: true,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        crate::settings::PASTE_LAST_BINDING.to_string(),
+        Arc::new(PasteLastAction) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "cancel".to_string(),

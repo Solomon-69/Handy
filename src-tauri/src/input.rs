@@ -16,6 +16,8 @@ mod macos {
     // resolution and remains the safest fallback if macOS cannot expose the
     // active layout.
     const ANSI_V_KEYCODE: u16 = 9;
+    // kVK_ANSI_C, the same kind of fallback for Cmd+C.
+    const ANSI_C_KEYCODE: u16 = 8;
     const KEYCODE_COUNT: u16 = 128;
     const UC_KEY_ACTION_DISPLAY: u16 = 3;
     const UC_KEY_TRANSLATE_NO_DEAD_KEYS_MASK: u32 = 1;
@@ -68,13 +70,13 @@ mod macos {
         (0..KEYCODE_COUNT).find(|&keycode| matches(keycode))
     }
 
-    /// Resolves the physical key that macOS interprets as `v` while Command is
+    /// Resolves the physical key that macOS interprets as `target` while Command is
     /// held. Including Command is important: non-Latin layouts commonly map
     /// Cmd shortcuts to their ANSI equivalents, while standard Dvorak does not.
     ///
     /// TIS APIs must run on the main thread; paste reaches this via
     /// `clipboard::with_enigo`, which hops there.
-    fn resolve_command_v_keycode() -> Result<u16, String> {
+    fn resolve_command_keycode(target: u8) -> Result<u16, String> {
         // SAFETY: This function is called on the macOS main thread. The returned
         // source follows the Create Rule and is released by InputSource::drop.
         let source = InputSource(unsafe { TISCopyCurrentKeyboardLayoutInputSource() });
@@ -123,15 +125,31 @@ mod macos {
                 )
             };
 
-            status == 0 && length == 1 && chars[0] == u16::from(b'v')
+            status == 0 && length == 1 && chars[0] == u16::from(target)
         })
-        .ok_or_else(|| "could not map Cmd+V in the current macOS keyboard layout".to_string())?;
+        .ok_or_else(|| {
+            format!(
+                "could not map Cmd+{} in the current macOS keyboard layout",
+                char::from(target).to_ascii_uppercase()
+            )
+        })?;
 
         Ok(keycode)
     }
 
+    /// The key that macOS reads as `c` while Command is held.
+    pub(super) fn command_c_key() -> Key {
+        match resolve_command_keycode(b'c') {
+            Ok(keycode) => Key::Other(u32::from(keycode)),
+            Err(error) => {
+                warn!("{error}; using ANSI C keycode {ANSI_C_KEYCODE}");
+                Key::Other(u32::from(ANSI_C_KEYCODE))
+            }
+        }
+    }
+
     pub(super) fn command_v_key() -> Key {
-        match resolve_command_v_keycode() {
+        match resolve_command_keycode(b'v') {
             Ok(keycode) => {
                 debug!("Resolved Cmd+V for the active macOS layout to keycode {keycode}");
                 Key::Other(u32::from(keycode))
@@ -192,6 +210,32 @@ pub fn send_paste_ctrl_v(enigo: &mut Enigo, hold_ms: u64) -> Result<(), String> 
     enigo
         .key(v_key_code, enigo::Direction::Click)
         .map_err(|e| format!("Failed to click V key: {}", e))?;
+
+    std::thread::sleep(std::time::Duration::from_millis(hold_ms));
+
+    enigo
+        .key(modifier_key, enigo::Direction::Release)
+        .map_err(|e| format!("Failed to release modifier key: {}", e))?;
+
+    Ok(())
+}
+
+/// Sends Cmd+C (Ctrl+C elsewhere) to copy the selection of the app in front.
+/// On macOS this must run on the main thread (see `command_c_key`).
+pub fn send_copy_command(enigo: &mut Enigo, hold_ms: u64) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let (modifier_key, c_key_code) = (Key::Meta, macos::command_c_key());
+    #[cfg(target_os = "windows")]
+    let (modifier_key, c_key_code) = (Key::Control, Key::Other(0x43)); // VK_C
+    #[cfg(target_os = "linux")]
+    let (modifier_key, c_key_code) = (Key::Control, Key::Unicode('c'));
+
+    enigo
+        .key(modifier_key, enigo::Direction::Press)
+        .map_err(|e| format!("Failed to press modifier key: {}", e))?;
+    enigo
+        .key(c_key_code, enigo::Direction::Click)
+        .map_err(|e| format!("Failed to click C key: {}", e))?;
 
     std::thread::sleep(std::time::Duration::from_millis(hold_ms));
 

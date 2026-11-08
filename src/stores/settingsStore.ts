@@ -214,6 +214,13 @@ const settingUpdaters: {
     const result = await commands.changeSnippetsSetting(value ?? []);
     if (result.status === "error") throw new Error(result.error);
   },
+  paste_last_shortcut_enabled: (value) =>
+    appearance("paste_last_shortcut_enabled", value),
+  command_mode_enabled: (value) => appearance("command_mode_enabled", value),
+  app_styles: async (value) => {
+    const result = await commands.changeAppStylesSetting(value ?? []);
+    if (result.status === "error") throw new Error(result.error);
+  },
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
   long_form_chunking: (value) =>
     commands.changeLongFormChunkingSetting(value as boolean),

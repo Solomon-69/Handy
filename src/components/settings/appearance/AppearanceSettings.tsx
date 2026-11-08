@@ -18,7 +18,7 @@ export const AppearanceSettings: React.FC = () => {
   const style = settings.overlay_style ?? "live";
   const size = settings.overlay_size ?? "medium";
   const position = settings.overlay_position ?? "bottom";
-  const horizontal = settings.overlay_horizontal ?? "active_window";
+  const horizontal = settings.overlay_horizontal ?? "screen";
   const offset = settings.overlay_offset_x ?? 0;
   const accent = settings.overlay_accent ?? "default";
   const opacity = settings.overlay_opacity ?? 1;

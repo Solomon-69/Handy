@@ -9,6 +9,7 @@ import { convertFileSrc } from "@tauri-apps/api/core";
 import { readFile } from "@tauri-apps/plugin-fs";
 import {
   Check,
+  ClipboardPaste,
   Copy,
   FileAudio,
   FilePlus,
@@ -332,6 +333,7 @@ export const HistorySettings: React.FC = () => {
                 job={jobs[entry.id]}
                 onToggleSaved={() => toggleSaved(entry.id)}
                 onCopyText={() => copyToClipboard(entry.transcription_text)}
+                onPasteAgain={() => commands.pasteHistoryEntry(entry.id)}
                 getAudioUrl={getAudioUrl}
                 deleteAudio={deleteAudioEntry}
                 retryTranscription={commands.retryHistoryEntryTranscription}
@@ -381,6 +383,7 @@ interface HistoryEntryProps {
   job?: ActiveJobStatus;
   onToggleSaved: () => void;
   onCopyText: () => Promise<boolean>;
+  onPasteAgain: () => Promise<{ status: "ok" | "error" }>;
   getAudioUrl: (fileName: string) => Promise<string | null>;
   deleteAudio: (id: number) => Promise<void>;
   retryTranscription: (id: number) => Promise<void>;
@@ -392,6 +395,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
   job,
   onToggleSaved,
   onCopyText,
+  onPasteAgain,
   getAudioUrl,
   deleteAudio,
   retryTranscription,
@@ -444,6 +448,14 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
     setTimeout(() => setShowCopied(false), 2000);
   };
 
+  const handlePasteAgain = async () => {
+    if (!hasTranscription) return;
+    const result = await onPasteAgain();
+    if (result.status === "error") {
+      notify({ title: t("settings.history.pasteError") });
+    }
+  };
+
   const handleDeleteEntry = async () => {
     try {
       await deleteAudio(entry.id);
@@ -490,6 +502,13 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
             ) : (
               <Copy width={16} height={16} />
             )}
+          </IconButton>
+          <IconButton
+            onClick={handlePasteAgain}
+            disabled={!hasTranscription || retrying}
+            title={t("settings.history.pasteAgain")}
+          >
+            <ClipboardPaste width={16} height={16} />
           </IconButton>
           <IconButton
             onClick={onToggleSaved}

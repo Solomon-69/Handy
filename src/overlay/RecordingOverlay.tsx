@@ -94,6 +94,8 @@ const RecordingOverlay: React.FC = () => {
   const [notice, setNotice] = useState<Notice | null>(null);
   // "Turn into a prompt" choice, shown after a long dictation (prompt_chip.rs).
   const [chip, setChip] = useState<{ timeout_ms: number } | null>(null);
+  // While the on-device model rewrites: "prompt" or "clean".
+  const [chipWork, setChipWork] = useState<string | null>(null);
   const [noticeWidth, setNoticeWidth] = useState<number>();
   const noticeProbeRef = useRef<HTMLSpanElement>(null);
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -156,8 +158,16 @@ const RecordingOverlay: React.FC = () => {
         "prompt-chip",
         (event) => setChip(event.payload),
       );
-      const unlistenChipDone = await listen("prompt-chip-done", () =>
-        setChip(null),
+      const unlistenChipDone = await listen("prompt-chip-done", () => {
+        setChip(null);
+        setChipWork(null);
+      });
+      const unlistenChipWork = await listen<string>(
+        "prompt-chip-working",
+        (event) => {
+          setChip(null);
+          setChipWork(event.payload);
+        },
       );
 
       const unlistenAppearance = await listen("appearance-changed", async () => {
@@ -239,6 +249,7 @@ const RecordingOverlay: React.FC = () => {
         unlistenAppearance();
         unlistenChip();
         unlistenChipDone();
+        unlistenChipWork();
         unlistenReady();
         unlistenLevel();
         unlistenStream();
@@ -295,7 +306,7 @@ const RecordingOverlay: React.FC = () => {
     );
   }, [noticeTitle, isVisible]);
 
-  if (!isVisible && !shownNotice && !chip) return null;
+  if (!isVisible && !shownNotice && !chip && !chipWork) return null;
 
   // Re-pin when the user is within ~a line of the bottom; unpin otherwise.
   const handleStreamScroll = () => {
@@ -373,6 +384,14 @@ const RecordingOverlay: React.FC = () => {
     setChip(null);
     commands.promptChipChoose(choice);
   };
+  const chipWorkRow =
+    chipWork &&
+    workingRow(
+      chipWork === "clean"
+        ? t("overlay.chip.cleaning")
+        : t("overlay.chip.engineering"),
+      false,
+    );
   const chipRow = chip && (
     <div className="sbase schip">
       <button className="schip-b" title={t("settings.appearance.promptChip.pasteAsIs")} onClick={() => choose("paste")}>
@@ -465,7 +484,9 @@ const RecordingOverlay: React.FC = () => {
               </div>
             </div>
           </div>
-          {chipRow
+          {chipWorkRow
+            ? chipWorkRow
+            : chipRow
             ? chipRow
             : liveNotice
             ? noticeRow
@@ -496,11 +517,13 @@ const RecordingOverlay: React.FC = () => {
     >
       {noticeProbe}
       <div
-        className={`scard compact ${working && isVisible ? "cworking" : ""} ${chip ? "cchip" : ""} ${noticeClass}`}
+        className={`scard compact ${working && isVisible ? "cworking" : ""} ${chip || chipWork ? "cchip" : ""} ${noticeClass}`}
         style={shownNotice ? { width: noticeWidth } : undefined}
         onClick={dismissNotice}
       >
-        {chipRow
+        {chipWorkRow
+          ? chipWorkRow
+          : chipRow
           ? chipRow
           : shownNotice
           ? noticeRow

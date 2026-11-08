@@ -141,6 +141,14 @@ async changeSnippetsSetting(snippets: Snippet[]) : Promise<Result<null, string>>
     else return { status: "error", error: e  as any };
 }
 },
+async changeAppStylesSetting(styles: AppStyle[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_app_styles_setting", { styles }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async openAccessibilitySettings() : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("open_accessibility_settings") };
@@ -982,6 +990,30 @@ async unloadModelManually() : Promise<Result<null, string>> {
     else return { status: "error", error: e  as any };
 }
 },
+async getUsageStats() : Promise<Result<UsageStats, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("get_usage_stats") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async pasteLastDictation() : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("paste_last_dictation") };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
+async pasteHistoryEntry(id: number) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("paste_history_entry", { id }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async getHistoryEntries(cursor: number | null, limit: number | null) : Promise<Result<PaginatedHistory, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("get_history_entries", { cursor, limit }) };
@@ -1225,7 +1257,19 @@ prompt_chip_min_words?: number;
 /**
  * "scratch that" / "no I mean" spoken corrections.
  */
-voice_corrections_enabled?: boolean; snippets?: Snippet[] }
+voice_corrections_enabled?: boolean; snippets?: Snippet[]; 
+/**
+ * Registers the "paste last dictation" shortcut. Off by default.
+ */
+paste_last_shortcut_enabled?: boolean; 
+/**
+ * Registers the Command Mode shortcut. Off by default.
+ */
+command_mode_enabled?: boolean; 
+/**
+ * Per-app writing styles, matched on the frontmost app's bundle id.
+ */
+app_styles?: AppStyle[] }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AutoUnavailableReason = 
@@ -1432,6 +1476,24 @@ export type PromptChipMode = "off" | "ask" | "always"
  * A saved text block: say `trigger`, get `text`.
  */
 export type Snippet = { trigger: string; text: string }
+/**
+ * A writing style for the app with this bundle id (e.g. com.apple.mail).
+ */
+export type AppStyle = { bundle_id: string; style: WritingStyle }
+/**
+ * How dictated text is reworded for one app.
+ */
+export type WritingStyle = "none" | "formal" | "casual" | "code"
+export type UsageStats = { total_words: number; words_this_week: number; dictations: number; 
+/**
+ * Average speaking speed; `None` without usable recordings.
+ */
+words_per_minute: number | null; 
+/**
+ * Days in a row with at least one dictation, ending today (or yesterday
+ * when nothing was dictated yet today).
+ */
+day_streak: number }
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"

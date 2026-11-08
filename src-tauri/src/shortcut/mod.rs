@@ -311,7 +311,7 @@ pub fn resume_all_shortcuts(app: &AppHandle) {
         if id == "cancel" {
             continue;
         }
-        if id == "transcribe_with_post_process" && !settings.post_process_enabled {
+        if !settings::binding_enabled(id, &settings) {
             continue;
         }
         if let Err(e) = register_shortcut(app, binding.clone()) {
@@ -507,7 +507,7 @@ fn register_all_shortcuts_for_implementation(
         }
 
         // Skip post-processing shortcut when the feature is disabled
-        if id == "transcribe_with_post_process" && !current_settings.post_process_enabled {
+        if !settings::binding_enabled(id, &current_settings) {
             continue;
         }
 
@@ -787,10 +787,48 @@ pub fn change_overlay_style_setting(app: AppHandle, style: String) -> Result<(),
 pub fn change_appearance_setting(app: AppHandle, key: String, value: String) -> Result<(), String> {
     let mut settings = settings::get_settings(&app);
     settings::apply_appearance_setting(&mut settings, &key, &value)?;
-    settings::write_settings(&app, settings);
+    settings::write_settings(&app, settings.clone());
+    sync_optional_binding(&app, &key, &settings);
     // The bar reads its look on every show; tell a visible one to refresh now.
     let _ = app.emit("appearance-changed", ());
     crate::utils::update_overlay_position(&app);
+    Ok(())
+}
+
+/// Registers or unregisters an optional shortcut when its toggle changes.
+fn sync_optional_binding(app: &AppHandle, key: &str, current: &settings::AppSettings) {
+    let id = match key {
+        "paste_last_shortcut_enabled" => settings::PASTE_LAST_BINDING,
+        "command_mode_enabled" => settings::COMMAND_MODE_BINDING,
+        _ => return,
+    };
+    let Some(binding) = current.bindings.get(id).cloned() else {
+        return;
+    };
+    let result = if settings::binding_enabled(id, current) {
+        register_shortcut(app, binding)
+    } else {
+        unregister_shortcut(app, binding)
+    };
+    if let Err(e) = result {
+        debug!("sync_optional_binding: '{}' not changed: {}", id, e);
+    }
+    crate::secure_input::reconcile_fallback(app);
+}
+
+/// Most per-app styles kept.
+const MAX_APP_STYLES: usize = 100;
+
+/// Saves the per-app writing styles (blank bundle ids are dropped).
+#[tauri::command]
+#[specta::specta]
+pub fn change_app_styles_setting(
+    app: AppHandle,
+    styles: Vec<settings::AppStyle>,
+) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.app_styles = crate::app_styles::sanitize(styles, MAX_APP_STYLES);
+    settings::write_settings(&app, settings);
     Ok(())
 }
 

@@ -644,6 +644,26 @@ impl HistoryManager {
         Ok(entry)
     }
 
+    /// (timestamp, final text, file name) of every finished dictation, newest
+    /// first, for usage statistics. Files are left out.
+    pub fn get_dictation_stats_rows(&self) -> Result<Vec<(i64, String, String)>> {
+        let conn = self.get_connection()?;
+        Self::get_dictation_stats_rows_with_conn(&conn)
+    }
+
+    fn get_dictation_stats_rows_with_conn(conn: &Connection) -> Result<Vec<(i64, String, String)>> {
+        let mut stmt = conn.prepare(
+            "SELECT timestamp, COALESCE(post_processed_text, transcription_text), file_name
+             FROM transcription_history
+             WHERE transcription_text != '' AND source_name IS NULL
+             ORDER BY timestamp DESC",
+        )?;
+        let rows = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
     pub async fn toggle_saved_status(&self, id: i64) -> Result<()> {
         let conn = self.get_connection()?;
 
@@ -876,6 +896,20 @@ mod tests {
 
         assert_eq!(entry.timestamp, 100);
         assert_eq!(entry.transcription_text, "completed");
+    }
+
+    #[test]
+    fn stats_rows_use_final_text_and_skip_empty_entries() {
+        let conn = setup_conn();
+        insert_entry(&conn, 100, "raw words", Some("clean words here"));
+        insert_entry(&conn, 200, "", None);
+        insert_entry(&conn, 300, "newest", None);
+
+        let rows = HistoryManager::get_dictation_stats_rows_with_conn(&conn).expect("rows");
+
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0].0, 300);
+        assert_eq!(rows[1].1, "clean words here");
     }
 
     #[test]

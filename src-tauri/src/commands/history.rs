@@ -139,3 +139,69 @@ pub async fn update_recording_retention_period(
 
     Ok(())
 }
+
+/// Most recordings read for the speed figure (newest first); each read only
+/// opens the WAV header.
+const MAX_STATS_RECORDINGS: usize = 300;
+
+/// Seconds of audio in a saved recording, from its WAV header.
+fn recording_secs(path: &std::path::Path) -> Option<f64> {
+    let reader = hound::WavReader::open(path).ok()?;
+    let rate = reader.spec().sample_rate;
+    (rate > 0).then(|| f64::from(reader.duration()) / f64::from(rate))
+}
+
+/// Word counts, speed and streak from local history.
+#[tauri::command]
+#[specta::specta]
+pub async fn get_usage_stats(
+    history_manager: State<'_, Arc<HistoryManager>>,
+) -> Result<crate::usage_stats::UsageStats, String> {
+    let rows = history_manager
+        .get_dictation_stats_rows()
+        .map_err(|e| e.to_string())?;
+    let samples: Vec<crate::usage_stats::StatsSample> = rows
+        .iter()
+        .enumerate()
+        .map(|(i, (timestamp, text, file_name))| crate::usage_stats::StatsSample {
+            timestamp: *timestamp,
+            words: crate::usage_stats::word_count(text),
+            audio_secs: (i < MAX_STATS_RECORDINGS)
+                .then(|| recording_secs(&history_manager.get_audio_file_path(file_name)))
+                .flatten(),
+        })
+        .collect();
+    Ok(crate::usage_stats::compute(
+        &samples,
+        chrono::Local::now().fixed_offset(),
+    ))
+}
+
+/// Pastes the newest dictation into the app used before Handy.
+#[tauri::command]
+#[specta::specta]
+pub fn paste_last_dictation(app: AppHandle) -> Result<(), String> {
+    let text = crate::paste_last::latest_text(&app)?;
+    crate::paste_last::paste_after_hiding(&app, text);
+    Ok(())
+}
+
+/// "Paste again" on a History row: pastes that entry into the app used
+/// before Handy.
+#[tauri::command]
+#[specta::specta]
+pub async fn paste_history_entry(
+    app: AppHandle,
+    history_manager: State<'_, Arc<HistoryManager>>,
+    id: i64,
+) -> Result<(), String> {
+    let entry = history_manager
+        .get_entry_by_id(id)
+        .await
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| format!("History entry {id} not found"))?;
+    let text = crate::paste_last::paste_text(&entry)
+        .ok_or_else(|| "This entry has no text".to_string())?;
+    crate::paste_last::paste_after_hiding(&app, text);
+    Ok(())
+}

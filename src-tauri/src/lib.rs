@@ -1,5 +1,6 @@
 mod actions;
 mod active_window;
+mod app_styles;
 #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
 mod apple_intelligence;
 mod audio_feedback;
@@ -9,6 +10,7 @@ mod catalog;
 mod chinese_script;
 pub mod cli;
 mod clipboard;
+mod command_mode;
 mod commands;
 pub mod engine_supervisor;
 mod helpers;
@@ -21,7 +23,9 @@ mod memory;
 mod notices;
 mod overlay;
 mod overlay_placement;
+mod paste_last;
 mod prompt_chip;
+mod spoken_format;
 mod voice_edits;
 mod paste_tx;
 pub mod portable;
@@ -34,6 +38,7 @@ mod transcription_coordinator;
 mod transcription_hook;
 mod tray;
 mod tray_i18n;
+mod usage_stats;
 mod utils;
 pub mod webkit_renderer;
 
@@ -703,6 +708,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_overlay_style_setting,
             shortcut::change_appearance_setting,
             shortcut::change_snippets_setting,
+            shortcut::change_app_styles_setting,
             shortcut::open_accessibility_settings,
             overlay::preview_recording_overlay,
             prompt_chip::prompt_chip_choose,
@@ -820,6 +826,9 @@ pub fn run(cli_args: CliArgs) {
             commands::history::transcribe_file,
             commands::history::update_history_limit,
             commands::history::update_recording_retention_period,
+            commands::history::get_usage_stats,
+            commands::history::paste_last_dictation,
+            commands::history::paste_history_entry,
             helpers::clamshell::is_laptop,
             notices::get_active_notices,
             notices::dismiss_notice,

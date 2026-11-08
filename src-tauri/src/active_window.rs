@@ -21,6 +21,18 @@ pub fn focused_target_frame() -> Option<Rect> {
     }
 }
 
+/// Bundle id of the app in front (e.g. "com.apple.mail"). macOS only.
+pub fn frontmost_bundle_id() -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        mac::frontmost_bundle_id()
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        None
+    }
+}
+
 #[cfg(target_os = "macos")]
 mod mac {
     use super::Rect;
@@ -120,6 +132,24 @@ mod mac {
             }
             let pid: i32 = msg_send![app, processIdentifier];
             (pid > 0).then_some(pid)
+        }
+    }
+
+    pub fn frontmost_bundle_id() -> Option<String> {
+        unsafe {
+            let workspace: *mut AnyObject = msg_send![class!(NSWorkspace), sharedWorkspace];
+            if workspace.is_null() {
+                return None;
+            }
+            let app: *mut AnyObject = msg_send![workspace, frontmostApplication];
+            if app.is_null() {
+                return None;
+            }
+            let bundle_id: *mut NSString = msg_send![app, bundleIdentifier];
+            if bundle_id.is_null() {
+                return None;
+            }
+            Some((*bundle_id).to_string())
         }
     }
 
