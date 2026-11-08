@@ -26,7 +26,7 @@
   --ov-rest-w: 150px; /* resting compact pill (minimal, recording) -- roomy enough
                          for the English working label before the grow starts */
   --ov-pill-w: 160px; /* base width / Live pill before it opens or collapses */
-  --ov-work-w: 184px; /* working pill (transcribing / polishing) -- wide enough to
+  --ov-work-w: 214px; /* working pill (transcribing / polishing) -- wide enough to
                          center longer labels; shared by Live (collapsed) + minimal */
   --ov-open-w: 392px; /* Live panel, expanded */
   --ov-base-h: 32px; /* control-row height (.sbase) */
@@ -461,7 +461,7 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  max-width: calc(100% - 56px);
+  max-width: calc(100% - 16px);
   font-size: 14px;
   font-weight: 500;
   color: transparent;
@@ -583,25 +583,9 @@
   .swork-label { animation: none; color: var(--s-muted); background: none; }
 }
 
-/* Bar looks: each one flat colour, never a gradient. */
-:root[data-look="frosted"] .scard {
-  background: color-mix(in srgb, var(--color-background) 72%, transparent);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-}
-:root[data-look="translucent"] .scard {
-  background: color-mix(in srgb, var(--color-background) 45%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-:root[data-look="clear"] .scard {
+/* Clear glass: one flat see-through colour, thin outline, no gradient. */
+.scard {
   background: color-mix(in srgb, var(--color-background) 14%, transparent);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-}
-:root[data-look="glass"] .scard {
-  background: color-mix(in srgb, var(--color-background) 30%, transparent);
-  backdrop-filter: blur(30px) saturate(1.8) brightness(1.05);
-  -webkit-backdrop-filter: blur(30px) saturate(1.8) brightness(1.05);
-  border-color: color-mix(in srgb, white 35%, transparent);
 }

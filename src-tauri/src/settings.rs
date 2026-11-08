@@ -665,9 +665,6 @@ pub struct AppSettings {
     /// Accent swatch id for the bar ("default" follows the app colour).
     #[serde(default = "default_overlay_accent")]
     pub overlay_accent: String,
-    /// Bar look: solid, frosted, translucent, clear or glass (all one flat colour).
-    #[serde(default = "default_overlay_look")]
-    pub overlay_look: String,
     /// Bar opacity, 0.4 to 1.0.
     #[serde(default = "default_overlay_opacity")]
     pub overlay_opacity: f64,
@@ -744,12 +741,6 @@ pub fn apply_appearance_setting(
                 return Err(format!("Unknown accent '{value}'"));
             }
             settings.overlay_accent = value.to_string();
-        }
-        "overlay_look" => {
-            if !["solid", "frosted", "translucent", "clear", "glass"].contains(&value) {
-                return Err(format!("Unknown bar look '{value}'"));
-            }
-            settings.overlay_look = value.to_string();
         }
         "overlay_opacity" => settings.overlay_opacity = parse_f64(value)?.clamp(0.4, 1.0),
         "prompt_chip_mode" => {
@@ -866,10 +857,6 @@ fn default_overlay_horizontal() -> OverlayHorizontal {
 
 fn default_overlay_size() -> OverlaySize {
     OverlaySize::Compact
-}
-
-fn default_overlay_look() -> String {
-    "solid".to_string()
 }
 
 fn default_overlay_accent() -> String {
@@ -1417,7 +1404,6 @@ pub fn get_default_settings() -> AppSettings {
         overlay_offset_x: 0.0,
         overlay_size: default_overlay_size(),
         overlay_accent: default_overlay_accent(),
-        overlay_look: default_overlay_look(),
         overlay_opacity: default_overlay_opacity(),
         prompt_chip_mode: default_prompt_chip_mode(),
         prompt_chip_min_words: default_prompt_chip_min_words(),

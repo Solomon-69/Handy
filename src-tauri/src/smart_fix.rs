@@ -9,8 +9,8 @@
 
 /// Words that signal a change of mind.
 const CUES: &[&str] = &[
-    "oh", "no wait", "wait", "hold on", "actually", "i mean", "sorry", "or rather",
-    "scratch that", "never mind", "nevermind", "let me rephrase", "i meant", "rather",
+    "or oh", "oh no", "no wait", "hold on", "i mean", "or rather", "sorry i meant",
+    "scratch that", "never mind", "nevermind", "let me rephrase", "i meant", "no no",
 ];
 
 const MIN_WORDS: usize = 5;

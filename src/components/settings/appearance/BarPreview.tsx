@@ -10,18 +10,6 @@ export const ACCENT_COLORS: Record<string, string> = {
   graphite: "#6b7280",
 };
 
-const blur = (px: number, bg: number): React.CSSProperties => ({
-  background: `color-mix(in srgb, var(--color-background) ${bg}%, transparent)`,
-  backdropFilter: `blur(${px}px)`,
-});
-const LOOKS: Record<string, React.CSSProperties> = {
-  solid: {},
-  frosted: blur(24, 72),
-  translucent: blur(14, 45),
-  clear: blur(4, 14),
-  glass: { ...blur(30, 30), borderColor: "color-mix(in srgb, white 35%, transparent)" },
-};
-
 const SCALE: Record<string, number> = { compact: 0.92, regular: 1.15 };
 const WAVE = [3, 6, 10, 15, 20, 15, 10, 6, 3];
 /** Neutral app icons for the Dock; one uses the accent. */
@@ -36,7 +24,6 @@ interface BarPreviewProps {
   style: string;
   size: string;
   accent: string;
-  look?: string;
   opacity: number;
   position: string;
   /** The chosen speech model can show words while you talk. */
@@ -50,17 +37,17 @@ const Pill: React.FC<{
   words: boolean;
   sample: string;
   opacity: number;
-  look: string;
-}> = ({ color, scale, words, sample, opacity, look }) => (
+}> = ({ color, scale, words, sample, opacity }) => (
   <div
     style={{
       zoom: scale,
       opacity,
       width: words ? 260 : 150,
-      ...LOOKS[look],
+      background: "color-mix(in srgb, var(--color-background) 14%, transparent)",
+      backdropFilter: "blur(4px)",
       transition: "width 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease",
     }}
-    className={`flex flex-col rounded-[22px] border border-line ${look === "solid" ? "bg-background" : ""}`}
+    className="flex flex-col rounded-[22px] border border-line"
   >
     {words && (
       <p className="px-[14px] pt-[10px] text-left text-[13px] italic leading-snug text-text/80">
@@ -128,7 +115,6 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
   style,
   size,
   accent,
-  look = "solid",
   opacity,
   position,
   showsWords,
@@ -139,7 +125,7 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
   const top = position === "top";
   const pill =
     style === "none" ? null : (
-      <Pill color={color} scale={scale} words={words} sample={sample} opacity={opacity} look={look} />
+      <Pill color={color} scale={scale} words={words} sample={sample} opacity={opacity} />
     );
   const wallpaper = `radial-gradient(120% 90% at 20% 10%, color-mix(in srgb, ${color} 38%, transparent) 0%, transparent 60%), radial-gradient(100% 80% at 90% 100%, color-mix(in srgb, ${color} 22%, transparent) 0%, transparent 65%), var(--color-background)`;
 

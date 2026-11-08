@@ -205,7 +205,6 @@ const settingUpdaters: {
     }
     return appearance("overlay_accent", value);
   },
-  overlay_look: (value) => appearance("overlay_look", value),
   overlay_opacity: (value) => appearance("overlay_opacity", value),
   prompt_chip_mode: (value) => appearance("prompt_chip_mode", value),
   prompt_chip_min_words: (value) => appearance("prompt_chip_min_words", value),
