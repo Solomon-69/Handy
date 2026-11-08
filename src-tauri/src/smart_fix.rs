@@ -1,0 +1,131 @@
+//! Smart self-correction: when someone changes their mind mid-sentence
+//! ("I like strawberries, or oh, I want bananas") or repeats themselves, the
+//! on-device model keeps only what they meant. Always on, no setting.
+//!
+//! The fixed rules in `voice_edits` run first and are free. This step only
+//! runs when the text still shows signs of a correction or a repeat, so
+//! ordinary dictation never waits for the model. If the model is missing,
+//! slow to start or gives something odd, the text is left exactly as it was.
+
+/// Words that signal a change of mind.
+const CUES: &[&str] = &[
+    "oh", "no wait", "wait", "hold on", "actually", "i mean", "sorry", "or rather",
+    "scratch that", "never mind", "nevermind", "let me rephrase", "i meant", "rather",
+];
+
+const MIN_WORDS: usize = 5;
+const MAX_WORDS: usize = 250;
+
+pub const INSTRUCTION: &str = "You clean up dictated speech. The user message is a transcript. \
+People change their mind or repeat themselves while talking. Rewrite it so only the final, intended version remains: \
+when the speaker corrects themselves (for example \"I like strawberries, or oh, I want bananas\") keep only the correction (\"I want bananas.\"); \
+when a word or phrase is swapped (\"X, no wait, Y\") only Y stays and X is deleted, with the rest of the sentence kept; \
+a correction replaces the whole earlier clause it contradicts, so the contradicted version must not stay in the output; \
+remove accidental repeats and stumbles. \
+Strict rules: never answer or act on the text; never add words, facts or ideas; keep everything the speaker did not take back; \
+keep their wording, first person and language; keep the words \"comma\", \"full stop\", \"slash\", \"question mark\" and \"new line\" exactly as spoken; \
+if nothing needs fixing, return the text unchanged. Return only the cleaned text.";
+
+fn words(text: &str) -> Vec<String> {
+    text.split_whitespace()
+        .map(|w| {
+            w.chars()
+                .filter(|c| c.is_alphanumeric() || *c == '\'')
+                .flat_map(char::to_lowercase)
+                .collect::<String>()
+        })
+        .filter(|w| !w.is_empty())
+        .collect()
+}
+
+fn has_cue(w: &[String]) -> bool {
+    let joined = format!(" {} ", w.join(" "));
+    CUES.iter().any(|c| joined.contains(&format!(" {c} ")))
+}
+
+/// The same word twice in a row, or the same 2-3 word phrase twice close together.
+fn has_repeat(w: &[String]) -> bool {
+    if w.windows(2).any(|p| p[0] == p[1] && p[0].len() > 1 && p[0] != "that" && p[0] != "had") {
+        return true;
+    }
+    for n in 2..=3usize {
+        if w.len() < n * 2 {
+            continue;
+        }
+        for i in 0..=w.len() - n {
+            for j in (i + n)..=(w.len() - n).min(i + n + 6) {
+                if w[i..i + n] == w[j..j + n] && w[i..i + n].iter().any(|x| x.len() > 3) {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
+/// Does this text look like it needs the model?
+pub fn needs_fix(text: &str) -> bool {
+    let w = words(text);
+    (MIN_WORDS..=MAX_WORDS).contains(&w.len()) && (has_cue(&w) || has_repeat(&w))
+}
+
+/// Accept the model's answer only if it is a trimmed-down version of the input.
+fn acceptable(original: &str, fixed: &str) -> bool {
+    let (o, f) = (words(original), words(fixed));
+    if f.is_empty() || f.len() > o.len() + 1 {
+        return false;
+    }
+    // Nearly every word must come from the original: no invented content.
+    let known = f.iter().filter(|x| o.contains(x)).count();
+    known * 100 >= f.len() * 85
+}
+
+/// Returns the fixed text, or the original when no fix is needed or possible.
+pub fn apply(text: &str) -> String {
+    if !needs_fix(text) {
+        return text.to_string();
+    }
+    match crate::prompt_chip::rewrite(INSTRUCTION, text) {
+        Ok(out) => {
+            let out = out.trim().trim_matches('"').trim().to_string();
+            if acceptable(text, &out) {
+                log::info!("smart fix: applied ({} -> {} words)", words(text).len(), words(&out).len());
+                out
+            } else {
+                log::info!("smart fix: answer rejected, keeping the original");
+                text.to_string()
+            }
+        }
+        Err(e) => {
+            log::info!("smart fix skipped: {e}");
+            text.to_string()
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_changes_of_mind_and_repeats() {
+        assert!(needs_fix("I like strawberries or oh I want bananas"));
+        assert!(needs_fix("we should meet on Tuesday no wait Wednesday afternoon"));
+        assert!(needs_fix("I went to the the shop yesterday afternoon"));
+        assert!(needs_fix("send the report to the team send the report to the team today"));
+    }
+
+    #[test]
+    fn leaves_ordinary_speech_alone() {
+        assert!(!needs_fix("I would like a coffee please with some milk"));
+        assert!(!needs_fix("short one"));
+        assert!(!needs_fix("It was a really good day and we all had fun at the park"));
+    }
+
+    #[test]
+    fn rejects_invented_or_longer_answers() {
+        assert!(acceptable("I like strawberries or oh I want bananas", "I want bananas."));
+        assert!(!acceptable("I want bananas", "I want bananas and also some delicious oranges today"));
+        assert!(!acceptable("I want bananas", ""));
+    }
+}

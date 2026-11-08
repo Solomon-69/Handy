@@ -21,12 +21,13 @@ const RESTATE_WINDOW: usize = 25;
 
 const SCRATCH_CUES: [&str; 2] = ["scratch that", "delete that"];
 
-pub fn apply(text: &str, corrections: bool, snippets: &[Snippet]) -> String {
-    let corrected = if corrections {
-        crate::spoken_format::apply(&apply_corrections(text))
-    } else {
-        text.to_string()
-    };
+/// Corrections are always on (no setting): free rules first, then the
+/// on-device model for changes of mind the rules cannot see, then spoken
+/// punctuation and numbers, then snippets.
+pub fn apply(text: &str, _corrections: bool, snippets: &[Snippet]) -> String {
+    let ruled = apply_corrections(text);
+    let fixed = crate::smart_fix::apply(&ruled);
+    let corrected = crate::spoken_format::apply(&fixed);
     expand_snippets(&corrected, snippets)
 }
 

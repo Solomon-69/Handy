@@ -7,6 +7,7 @@ import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
 import { ThemeSelector } from "../ThemeSelector";
 import { SegmentedControl } from "./SegmentedControl";
+import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { BarPreview, ACCENT_COLORS } from "./BarPreview";
 
 const ACCENTS = Object.keys(ACCENT_COLORS);
@@ -54,19 +55,14 @@ export const AppearanceSettings: React.FC = () => {
         </button>
       </div>
       <ThemeSelector descriptionMode="tooltip" grouped={true} />
-      <SettingContainer
-        title={t(`${a}.barStyle.title`)}
+      <ToggleSwitch
+        checked={style !== "none"}
+        onChange={(on) => updateSetting("overlay_style", (on ? "live" : "none") as typeof style)}
+        label={t(`${a}.barStyle.title`)}
         description={t(`${a}.barStyle.description`)}
         descriptionMode="tooltip"
         grouped={true}
-      >
-        <SegmentedControl
-          ariaLabel={t(`${a}.barStyle.title`)}
-          options={seg(`${a}.barStyle`, ["none", "minimal", "live"])}
-          value={style}
-          onChange={(v) => updateSetting("overlay_style", v as typeof style)}
-        />
-      </SettingContainer>
+      />
       <SettingContainer
         title={t(`${a}.size.title`)}
         description={t(`${a}.size.description`)}

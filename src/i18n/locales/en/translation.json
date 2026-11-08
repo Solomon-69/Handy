@@ -914,8 +914,8 @@
       "preview": "Preview",
       "showOnScreen": "Show on screen",
       "barStyle": {
-        "title": "Bar style",
-        "description": "How the recording bar looks while you talk",
+        "title": "Show recording bar",
+        "description": "Shows the bar while you talk. It shows your words live when the speech model can, and a calm waveform when it cannot.",
         "none": "Hidden",
         "minimal": "Minimal",
         "live": "Live text"
@@ -973,7 +973,7 @@
       "sample": "Hello, this is how your words appear"
     },
     "snippets": {
-      "title": "Snippets and corrections",
+      "title": "Snippets",
       "corrections": {
         "title": "Smart corrections and formatting",
         "description": "Keeps only what you meant when you correct yourself (\"I want strawberries, no, I want bananas\" becomes \"I want bananas\"), turns \"comma\", \"full stop\", \"slash\" and \"new line\" into symbols, and writes numbers of ten or more as digits"

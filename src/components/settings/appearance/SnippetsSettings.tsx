@@ -4,7 +4,6 @@ import type { Snippet } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
-import { ToggleSwitch } from "../../ui/ToggleSwitch";
 
 /** Spoken corrections toggle plus a small editor for snippets. */
 export const SnippetsSettings: React.FC = () => {
@@ -28,13 +27,6 @@ export const SnippetsSettings: React.FC = () => {
 
   return (
     <SettingsGroup title={t(`${b}.title`)}>
-      <ToggleSwitch
-        checked={settings.voice_corrections_enabled ?? true}
-        onChange={(v) => updateSetting("voice_corrections_enabled", v)}
-        label={t(`${b}.corrections.title`)}
-        description={t(`${b}.corrections.description`)}
-        grouped={true}
-      />
       <SettingContainer
         title={t(`${b}.list.title`)}
         description={t(`${b}.list.description`)}

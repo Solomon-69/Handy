@@ -27,6 +27,7 @@ mod paste_last;
 mod prompt_chip;
 mod prompt_detect;
 mod paste_guard;
+mod smart_fix;
 mod spoken_format;
 mod voice_edits;
 mod paste_tx;
