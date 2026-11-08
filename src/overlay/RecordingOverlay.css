@@ -214,7 +214,7 @@
   color: var(--notice);
 }
 .nlabel {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--color-text);
   white-space: nowrap;
   min-width: 0;
@@ -479,7 +479,8 @@
 /* Working label shimmers instead of a spinner (council pick): a soft
    highlight sweeps across the words; quick jobs (<250ms) never animate. */
 .swork-label {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 500;
   color: transparent;
   background: linear-gradient(
       90deg,
