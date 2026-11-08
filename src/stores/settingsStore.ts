@@ -200,6 +200,12 @@ const settingUpdaters: {
   overlay_opacity: (value) => appearance("overlay_opacity", value),
   prompt_chip_mode: (value) => appearance("prompt_chip_mode", value),
   prompt_chip_min_words: (value) => appearance("prompt_chip_min_words", value),
+  voice_corrections_enabled: (value) =>
+    appearance("voice_corrections_enabled", value),
+  snippets: async (value) => {
+    const result = await commands.changeSnippetsSetting(value ?? []);
+    if (result.status === "error") throw new Error(result.error);
+  },
   vad_enabled: (value) => commands.changeVadEnabledSetting(value as boolean),
   long_form_chunking: (value) =>
     commands.changeLongFormChunkingSetting(value as boolean),

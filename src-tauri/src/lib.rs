@@ -22,6 +22,7 @@ mod notices;
 mod overlay;
 mod overlay_placement;
 mod prompt_chip;
+mod voice_edits;
 mod paste_tx;
 pub mod portable;
 mod secure_input;
@@ -701,6 +702,7 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_overlay_position_setting,
             shortcut::change_overlay_style_setting,
             shortcut::change_appearance_setting,
+            shortcut::change_snippets_setting,
             overlay::preview_recording_overlay,
             prompt_chip::prompt_chip_choose,
             shortcut::change_debug_mode_setting,

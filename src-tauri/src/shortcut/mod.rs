@@ -794,6 +794,24 @@ pub fn change_appearance_setting(app: AppHandle, key: String, value: String) -> 
     Ok(())
 }
 
+/// Saves the snippet list (empty triggers/texts are dropped).
+#[tauri::command]
+#[specta::specta]
+pub fn change_snippets_setting(app: AppHandle, snippets: Vec<settings::Snippet>) -> Result<(), String> {
+    let mut settings = settings::get_settings(&app);
+    settings.snippets = snippets
+        .into_iter()
+        .map(|s| settings::Snippet {
+            trigger: s.trigger.trim().to_string(),
+            text: s.text,
+        })
+        .filter(|s| !s.trigger.is_empty() && !s.text.is_empty())
+        .take(200)
+        .collect();
+    settings::write_settings(&app, settings);
+    Ok(())
+}
+
 #[tauri::command]
 #[specta::specta]
 pub fn change_debug_mode_setting(app: AppHandle, enabled: bool) -> Result<(), String> {

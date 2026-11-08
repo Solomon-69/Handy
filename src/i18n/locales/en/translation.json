@@ -960,6 +960,21 @@
         "cleanUp": "Clean up",
         "unavailable": "Apple Intelligence is not available on this Mac, so the text was pasted as is"
       }
+    },
+    "snippets": {
+      "title": "Snippets and corrections",
+      "corrections": {
+        "title": "Spoken corrections",
+        "description": "Say \"scratch that\" to drop the last sentence, or \"no I mean\" to replace the word before it"
+      },
+      "list": {
+        "title": "Snippets",
+        "description": "Say a short phrase and Handy types the saved text instead"
+      },
+      "trigger": "When I say",
+      "text": "Type this",
+      "add": "Add snippet",
+      "remove": "Remove"
     }
   },
   "footer": {

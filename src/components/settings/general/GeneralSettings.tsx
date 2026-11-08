@@ -1,4 +1,5 @@
 import { AppearanceSettings } from "../appearance/AppearanceSettings";
+import { SnippetsSettings } from "../appearance/SnippetsSettings";
 import React from "react";
 import { useTranslation } from "react-i18next";
 import { type } from "@tauri-apps/plugin-os";
@@ -34,6 +35,7 @@ export const GeneralSettings: React.FC = () => {
         {!isLinux && <ShortcutInput shortcutId="cancel" grouped={true} />}
       </SettingsGroup>
       <AppearanceSettings />
+      <SnippetsSettings />
       <SettingsGroup title={t("settings.languages.title")}>
         <PreferredLanguages descriptionMode="tooltip" grouped={true} />
         {speaksChinese && (

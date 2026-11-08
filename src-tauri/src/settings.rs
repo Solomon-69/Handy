@@ -156,6 +156,13 @@ pub enum OverlayHorizontal {
     Custom,
 }
 
+/// A saved text block: say `trigger`, get `text`.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Type)]
+pub struct Snippet {
+    pub trigger: String,
+    pub text: String,
+}
+
 /// Recording bar size.
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Type)]
 #[serde(rename_all = "lowercase")]
@@ -627,6 +634,15 @@ pub struct AppSettings {
     /// Dictations at least this many words long get the prompt chip.
     #[serde(default = "default_prompt_chip_min_words")]
     pub prompt_chip_min_words: u32,
+    /// "scratch that" / "no I mean" spoken corrections.
+    #[serde(default = "default_voice_corrections_enabled")]
+    pub voice_corrections_enabled: bool,
+    #[serde(default)]
+    pub snippets: Vec<Snippet>,
+}
+
+fn default_voice_corrections_enabled() -> bool {
+    true
 }
 
 /// Accent swatch ids the recording bar understands (see RecordingOverlay.css).
@@ -685,6 +701,13 @@ pub fn apply_appearance_setting(
                 .parse::<u32>()
                 .map_err(|_| format!("'{value}' is not a whole number"))?;
             settings.prompt_chip_min_words = n.clamp(5, 2000);
+        }
+        "voice_corrections_enabled" => {
+            settings.voice_corrections_enabled = match value {
+                "true" => true,
+                "false" => false,
+                other => return Err(format!("'{other}' is not true or false")),
+            }
         }
         other => return Err(format!("Unknown appearance setting '{other}'")),
     }
@@ -1259,6 +1282,8 @@ pub fn get_default_settings() -> AppSettings {
         overlay_opacity: default_overlay_opacity(),
         prompt_chip_mode: default_prompt_chip_mode(),
         prompt_chip_min_words: default_prompt_chip_min_words(),
+        voice_corrections_enabled: default_voice_corrections_enabled(),
+        snippets: Vec::new(),
     }
 }
 

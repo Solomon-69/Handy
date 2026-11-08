@@ -133,6 +133,14 @@ async changeAppearanceSetting(key: string, value: string) : Promise<Result<null,
     else return { status: "error", error: e  as any };
 }
 },
+async changeSnippetsSetting(snippets: Snippet[]) : Promise<Result<null, string>> {
+    try {
+    return { status: "ok", data: await TAURI_INVOKE("change_snippets_setting", { snippets }) };
+} catch (e) {
+    if(e instanceof Error) throw e;
+    else return { status: "error", error: e  as any };
+}
+},
 async promptChipChoose(choice: string) : Promise<Result<null, string>> {
     try {
     return { status: "ok", data: await TAURI_INVOKE("prompt_chip_choose", { choice }) };
@@ -1205,7 +1213,11 @@ overlay_opacity?: number; prompt_chip_mode?: PromptChipMode;
 /**
  * Dictations at least this many words long get the prompt chip.
  */
-prompt_chip_min_words?: number }
+prompt_chip_min_words?: number; 
+/**
+ * "scratch that" / "no I mean" spoken corrections.
+ */
+voice_corrections_enabled?: boolean; snippets?: Snippet[] }
 export type AudioDevice = { index: string; name: string; is_default: boolean }
 export type AutoSubmitKey = "enter" | "ctrl_enter" | "cmd_enter"
 export type AutoUnavailableReason = 
@@ -1408,6 +1420,10 @@ export type OverlayStyle = "none" | "minimal" | "live"
 export type OverlayHorizontal = "screen" | "active_window" | "custom"
 export type OverlaySize = "small" | "medium" | "large"
 export type PromptChipMode = "off" | "ask" | "always"
+/**
+ * A saved text block: say `trigger`, get `text`.
+ */
+export type Snippet = { trigger: string; text: string }
 export type PaginatedHistory = { entries: HistoryEntry[]; has_more: boolean }
 export type PasteMethod = "ctrl_v" | "direct" | "none" | "shift_insert" | "ctrl_shift_v" | "external_script"
 export type PermissionAccess = "allowed" | "denied" | "unknown"

@@ -1695,7 +1695,12 @@ fn post_process_transcription_text(
             settings.filler_word_removal_enabled,
         );
 
-        normalize_transcription_output(&without_fillers)
+        let normalized = normalize_transcription_output(&without_fillers);
+        crate::voice_edits::apply(
+            &normalized,
+            settings.voice_corrections_enabled,
+            &settings.snippets,
+        )
     })
 }
 
