@@ -898,6 +898,68 @@
           "details": "Handy's local speech-to-text is built on transcribe.cpp and ggml. Thanks to the amazing work by Georgi Gerganov and contributors."
         }
       }
+    },
+    "appearance": {
+      "title": "Appearance",
+      "preview": "Preview",
+      "showOnScreen": "Show on screen",
+      "barStyle": {
+        "title": "Bar style",
+        "description": "How the recording bar looks while you talk",
+        "none": "Hidden",
+        "minimal": "Minimal",
+        "live": "Live text"
+      },
+      "size": {
+        "title": "Bar size",
+        "description": "Make the recording bar smaller or larger",
+        "small": "Small",
+        "medium": "Medium",
+        "large": "Large"
+      },
+      "position": {
+        "title": "Vertical position",
+        "description": "Show the bar at the top or bottom",
+        "top": "Top",
+        "bottom": "Bottom"
+      },
+      "horizontal": {
+        "title": "Horizontal position",
+        "description": "Centre of the active window follows the text box you are typing in, so apps with a sidebar keep the bar centred",
+        "screen": "Screen",
+        "active_window": "Active window",
+        "custom": "Custom"
+      },
+      "offset": {
+        "title": "Custom offset",
+        "description": "Move the bar left or right of the screen centre, in points"
+      },
+      "accent": {
+        "title": "Colour",
+        "description": "Accent colour for the dot and waveform",
+        "default": "Pink",
+        "blue": "Blue",
+        "green": "Green",
+        "orange": "Orange",
+        "purple": "Purple",
+        "graphite": "Graphite"
+      },
+      "opacity": {
+        "title": "Opacity",
+        "description": "How see-through the bar is"
+      },
+      "promptChip": {
+        "title": "Turn into a prompt",
+        "description": "After a long dictation, offer to rewrite it as a clear prompt for an AI, using the on-device Apple Intelligence model. Paste as is happens if you choose nothing.",
+        "off": "Off",
+        "ask": "Ask",
+        "always": "Always",
+        "minWords": "Ask after this many words",
+        "pasteAsIs": "Paste as is",
+        "turnIntoPrompt": "Turn into prompt",
+        "cleanUp": "Clean up",
+        "unavailable": "Apple Intelligence is not available on this Mac, so the text was pasted as is"
+      }
     }
   },
   "footer": {
