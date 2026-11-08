@@ -102,7 +102,7 @@ const OVERLAY_TOP_OFFSET: f64 = 46.0;
 const OVERLAY_TOP_OFFSET: f64 = 4.0;
 
 #[cfg(target_os = "macos")]
-const OVERLAY_BOTTOM_OFFSET: f64 = 15.0;
+const OVERLAY_BOTTOM_OFFSET: f64 = 6.0;
 
 #[cfg(any(target_os = "windows", target_os = "linux"))]
 const OVERLAY_BOTTOM_OFFSET: f64 = 40.0;
@@ -300,12 +300,7 @@ fn calculate_overlay_position(
 
     // work_area.position shares monitor.position's global coordinate space, so
     // no monitor offset is added.
-    #[cfg(target_os = "macos")]
-    let bottom_limit = {
-        let wa = monitor.work_area();
-        (wa.position.y as f64 + wa.size.height as f64) / scale
-    };
-    #[cfg(not(target_os = "macos"))]
+    // The very bottom of the screen, like Wispr Flow (over the Dock area).
     let bottom_limit = screen.bottom();
 
     let x = bar_x(
