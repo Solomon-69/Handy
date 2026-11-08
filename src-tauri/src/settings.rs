@@ -797,8 +797,8 @@ mod appearance_tests {
         assert_eq!(s.overlay_offset_x, -800.0);
         apply_appearance_setting(&mut s, "overlay_opacity", "0.1").unwrap();
         assert_eq!(s.overlay_opacity, 0.4);
-        apply_appearance_setting(&mut s, "overlay_size", "large").unwrap();
-        assert_eq!(s.overlay_size.scale(), 1.2);
+        apply_appearance_setting(&mut s, "overlay_size", "regular").unwrap();
+        assert_eq!(s.overlay_size.scale(), 1.15);
         apply_appearance_setting(&mut s, "overlay_accent", "green").unwrap();
         apply_appearance_setting(&mut s, "prompt_chip_mode", "ask").unwrap();
         apply_appearance_setting(&mut s, "prompt_chip_min_words", "2").unwrap();
