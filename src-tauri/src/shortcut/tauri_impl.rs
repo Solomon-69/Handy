@@ -164,6 +164,12 @@ pub fn register_shortcut(app: &AppHandle, binding: ShortcutBinding) -> Result<()
                                 return; // a newer real event took over
                             }
                             if !keys_still_held(&sc) {
+                                // Give the real release event time to arrive first,
+                                // so one release is never handled twice.
+                                std::thread::sleep(std::time::Duration::from_millis(200));
+                                if EVENT_GEN.load(Ordering::SeqCst) != generation {
+                                    return;
+                                }
                                 handle_shortcut_event(&app, &id, &sc, false);
                                 return;
                             }

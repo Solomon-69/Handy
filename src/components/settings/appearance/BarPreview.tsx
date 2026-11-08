@@ -15,9 +15,7 @@ const WAVE = [3, 6, 10, 15, 20, 15, 10, 6, 3];
 /** Neutral app icons for the Dock; one uses the accent. */
 const DOCK = Array.from({ length: 7 }, () => "#8e8e93");
 /** Real size of the Dock icons (points) next to a 32pt-tall bar. */
-const ICON = 48;
-/** Preview screen width over a typical 1470pt screen. */
-const SCREEN_FACTOR = 0.3;
+const ICON = 58;
 
 interface BarPreviewProps {
   sample: string;
@@ -135,42 +133,16 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
         @keyframes hp-wave { 0%,100% { transform: scaleY(.45) } 50% { transform: scaleY(1) } }
         @media (prefers-reduced-motion: reduce) { .hp-bar { animation: none !important } }
       `}</style>
-      {/* Whole screen, true proportions */}
-      <div
-        className="relative w-full overflow-hidden rounded-[14px] border border-line"
-        style={{ aspectRatio: "16 / 10", background: wallpaper, transition: "background 300ms ease" }}
-      >
-        <div className="absolute inset-x-0 top-0 flex h-[14px] items-center gap-[6px] bg-text/10 px-[8px]">
-          <span className="h-[5px] w-[5px] rounded-full bg-text/50" />
-          {[22, 16, 18, 14].map((w, i) => (
-            <span key={i} className="h-[3px] rounded-full bg-text/30" style={{ width: w }} />
-          ))}
-          <span className="ml-auto h-[3px] w-[30px] rounded-full bg-text/30" />
-        </div>
-        <div
-          className="absolute left-1/2 origin-bottom"
-          style={{
-            bottom: 0,
-            transform: `translateX(-50%) scale(${SCREEN_FACTOR})`,
-            ...(top ? { top: 0, transformOrigin: "top center", bottom: "auto" } : {}),
-          }}
-        >
-          <Edge top={top} color={color} pill={pill} />
-        </div>
-      </div>
       {/* Zoomed in: the Dock and the bar at their real size */}
       <div className="w-full">
-        <p className="mb-1 text-center text-[11px] uppercase tracking-[.08em] text-ink-3">
-          Zoomed in
-        </p>
         <div
-          className="relative h-[110px] w-full overflow-hidden rounded-[14px] border border-line"
+          className="relative h-[130px] w-full overflow-hidden rounded-[14px] border border-line"
           style={{ background: wallpaper, transition: "background 300ms ease" }}
         >
           <div
             className="absolute left-1/2"
             style={{
-              transform: "translateX(-50%) scale(0.62)",
+              transform: "translateX(-50%) scale(0.8)",
               ...(top ? { top: 0, transformOrigin: "top center" } : { bottom: 0, transformOrigin: "bottom center" }),
             }}
           >
