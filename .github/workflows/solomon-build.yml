@@ -28,10 +28,11 @@ jobs:
           bun run lint
           bunx tsc --noEmit
       - name: Rust tests
+        if: ${{ !cancelled() }}
         working-directory: src-tauri
         env:
           CMAKE_POLICY_VERSION_MINIMUM: "3.5"
-        run: cargo test 2>&1 | tail -150
+        run: set -o pipefail; cargo test 2>&1 | tail -150
 
   build:
     strategy:

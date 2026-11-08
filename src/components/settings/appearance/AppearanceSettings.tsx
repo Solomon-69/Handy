@@ -33,6 +33,7 @@ export const AppearanceSettings: React.FC = () => {
     <SettingsGroup title={t(`${a}.title`)}>
       <div className="px-4 py-4 flex flex-col items-center gap-3 border-b border-line">
         <BarPreview
+          sample={t(`${a}.sample`)}
           style={style}
           size={size}
           accent={accent}

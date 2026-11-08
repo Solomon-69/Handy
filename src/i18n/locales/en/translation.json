@@ -959,7 +959,8 @@
         "turnIntoPrompt": "Turn into prompt",
         "cleanUp": "Clean up",
         "unavailable": "Apple Intelligence is not available on this Mac, so the text was pasted as is"
-      }
+      },
+      "sample": "Hello, this is how your words appear"
     },
     "snippets": {
       "title": "Snippets and corrections",

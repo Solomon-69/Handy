@@ -14,6 +14,7 @@ const SCALE: Record<string, number> = { small: 0.85, medium: 1, large: 1.2 };
 const BARS = [0.25, 0.45, 0.7, 0.9, 1, 0.9, 0.7, 0.45, 0.25];
 
 interface BarPreviewProps {
+  sample: string;
   style: string;
   size: string;
   accent: string;
@@ -26,6 +27,7 @@ interface BarPreviewProps {
  * same geometry as RecordingOverlay.css so Settings shows what you will get.
  */
 export const BarPreview: React.FC<BarPreviewProps> = ({
+  sample,
   style,
   size,
   accent,
@@ -48,7 +50,6 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
         @media (prefers-reduced-motion: reduce) { .hp-bar { animation: none !important } }
       `}</style>
       {style === "none" ? (
-        // eslint-disable-next-line i18next/no-literal-string
         <span className="self-center text-xs text-ink-3">-</span>
       ) : (
         <div
@@ -63,8 +64,7 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
         >
           {live && (
             <p className="px-[14px] pt-[10px] text-[13px] italic leading-snug text-text/80 text-left">
-              {/* eslint-disable-next-line i18next/no-literal-string */}
-              Hello, this is how your words appear
+              {sample}
             </p>
           )}
           <div

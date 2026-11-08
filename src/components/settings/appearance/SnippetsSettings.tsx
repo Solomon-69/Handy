@@ -70,7 +70,6 @@ export const SnippetsSettings: React.FC = () => {
                 }}
                 className="h-[30px] w-[30px] rounded-[8px] text-center text-ink-2 hover:bg-wash active:scale-[0.97] outline-none focus:outline-none"
               >
-                {/* eslint-disable-next-line i18next/no-literal-string */}
                 ×
               </button>
             </div>
