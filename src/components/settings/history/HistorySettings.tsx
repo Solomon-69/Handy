@@ -94,7 +94,7 @@ const FileReadRow: React.FC<{ read: FileRead }> = ({ read }) => {
         <FileAudio width={14} height={14} className="shrink-0" />
         <span className="truncate">{read.name}</span>
       </span>
-      <p className="italic text-sm w-full" style={TRANSCRIBE_PULSE}>
+      <p className="font-transcript text-[15px] w-full" style={TRANSCRIBE_PULSE}>
         <TranscribePulseKeyframes />
         {t("settings.history.readingFile")}
       </p>
@@ -556,7 +556,7 @@ const HistoryEntryComponent: React.FC<HistoryEntryProps> = ({
       <div className="flex flex-col items-start gap-1 pb-2">
         <p
           ref={textRef}
-          className={`italic text-sm w-full ${
+          className={`font-transcript text-[15px] leading-relaxed w-full ${
             retrying
               ? ""
               : hasTranscription
