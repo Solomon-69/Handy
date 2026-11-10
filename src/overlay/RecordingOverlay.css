@@ -465,6 +465,12 @@
 .scard.compact.cchip {
   width: var(--ov-chip-w);
 }
+/* "Prompting" needs a little more room than the dots, but not the chip's. */
+.scard.working:has(.swork-prompt),
+.scard.compact.cworking:has(.swork-prompt),
+.scard.compact.cchip:has(.swork-prompt) {
+  width: 150px;
+}
 .sbase.schip {
   position: relative;
   display: grid;
@@ -572,6 +578,43 @@
 }
 .swork-prompt i:nth-child(2) { animation-delay: 0.13s; }
 .swork-prompt i:nth-child(3) { animation-delay: 0.26s; }
+/* Prompt engineering: a softly glowing sparkle and a white-only shimmer
+   sweeping across the word. */
+.sspark {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  fill: #fff;
+  animation: sspark-glow 1.6s ease-in-out infinite;
+}
+@keyframes sspark-glow {
+  0%, 100% {
+    transform: scale(0.75) rotate(0deg);
+    opacity: 0.7;
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.4));
+  }
+  50% {
+    transform: scale(1.05) rotate(45deg);
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9));
+  }
+}
+.sprompt-text {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), #fff 50%, rgba(255, 255, 255, 0.45));
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: sprompt-shimmer 1.6s linear infinite;
+}
+@keyframes sprompt-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+
 /* Model loading: slower and quieter. */
 .swork-load i {
   animation-duration: 1.8s;
@@ -579,7 +622,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .swork i {
+  .swork i,
+  .sspark,
+  .sprompt-text {
     animation: none;
     transform: none;
     opacity: 0.8;

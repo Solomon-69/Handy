@@ -91,19 +91,33 @@ type WorkKind = "transcribe" | "prompt" | "load";
 /** Three breathing dots, always centred in the pill. Prompt engineering
  *  breathes faster with a soft glow; model loading is slower and dimmer. The
  *  label stays as the accessible name and tooltip. */
-const WorkAnimation: React.FC<{ kind: WorkKind; label: string }> = ({
-  kind,
-  label,
-}) => (
+const WorkAnimation: React.FC<{
+  kind: WorkKind;
+  label: string;
+  word?: string;
+}> = ({ kind, label, word }) => (
   <span
     className={`swork swork-${kind}`}
     role="status"
     aria-label={label}
     title={label}
   >
-    <i />
-    <i />
-    <i />
+    {kind === "prompt" ? (
+      <>
+        <svg className="sspark" viewBox="0 0 12 12" aria-hidden="true">
+          <path d="M6 .5C6.5 4 8 5.5 11.5 6 8 6.5 6.5 8 6 11.5 5.5 8 4 6.5.5 6 4 5.5 5.5 4 6 .5Z" />
+        </svg>
+        <span className="sprompt-text" aria-hidden="true">
+          {word}
+        </span>
+      </>
+    ) : (
+      <>
+        <i />
+        <i />
+        <i />
+      </>
+    )}
   </span>
 );
 
@@ -433,7 +447,11 @@ const RecordingOverlay: React.FC = () => {
   const workingRow = (label: string, kind: WorkKind, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l" />
-      <WorkAnimation kind={kind} label={label} />
+      <WorkAnimation
+        kind={kind}
+        label={label}
+        word={t("overlay.chip.prompting")}
+      />
       <div className="sbase-r">{showCancel && cancelBtn}</div>
     </div>
   );
