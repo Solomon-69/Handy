@@ -32,8 +32,8 @@ export const SnippetsSettings: React.FC<{ bare?: boolean }> = ({ bare = false })
   return (
     <Group title={t(`${b}.title`)}>
       <SettingContainer
-        title={t(`${b}.list.title`)}
-        description={t(`${b}.list.description`)}
+        title={bare ? "" : t(`${b}.list.title`)}
+        description={bare ? "" : t(`${b}.list.description`)}
         descriptionMode="inline"
         grouped={true}
         layout="stacked"
