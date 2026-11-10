@@ -88,9 +88,9 @@ const applyAppearance = (settings: AppSettings) => {
 /** Which wordless working animation to show. */
 type WorkKind = "transcribe" | "prompt" | "load";
 
-/** Five little bars: a travelling wave (transcribing / cleaning), a slow
- *  breathing row (model loading), or a wave with a twinkling spark (prompt
- *  engineering). The label stays as the accessible name and tooltip. */
+/** Three breathing dots, always centred in the pill. Prompt engineering
+ *  breathes faster with a soft glow; model loading is slower and dimmer. The
+ *  label stays as the accessible name and tooltip. */
 const WorkAnimation: React.FC<{ kind: WorkKind; label: string }> = ({
   kind,
   label,
@@ -104,13 +104,6 @@ const WorkAnimation: React.FC<{ kind: WorkKind; label: string }> = ({
     <i />
     <i />
     <i />
-    <i />
-    <i />
-    {kind === "prompt" && (
-      <svg className="sspark" viewBox="0 0 12 12" aria-hidden="true">
-        <path d="M6 0.5 C6.5 4 8 5.5 11.5 6 C8 6.5 6.5 8 6 11.5 C5.5 8 4 6.5 0.5 6 C4 5.5 5.5 4 6 0.5 Z" />
-      </svg>
-    )}
   </span>
 );
 
