@@ -153,7 +153,7 @@ export const BarPreview: React.FC<BarPreviewProps> = ({
 }) => {
   const black = glass === "black";
   const accentColor = ACCENT_COLORS[accent] ?? ACCENT_COLORS.default;
-  const color = black ? "#ffffff" : accentColor;
+  const color = black && accent === "default" ? "#ffffff" : accentColor;
   const scale = SCALE[size] ?? 0.92;
   const words = style !== "none" && showsWords;
   const top = position === "top";

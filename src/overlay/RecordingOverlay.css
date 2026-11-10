@@ -859,10 +859,14 @@
    Black glass bar: dark see-through glass, white waveform, controls and
    animations, whatever accent is picked.
    ============================================================ */
-:root[data-glass="black"] .ov-stage {
-  --color-text: #ffffff;
+/* Black glass keeps the chosen accent colour; only the default accent is white. */
+:root[data-glass="black"]:not([data-accent]) .ov-stage,
+:root[data-glass="black"][data-accent="default"] .ov-stage {
   --s-accent: #ffffff;
   --s-accent-soft: rgba(255, 255, 255, 0.24);
+}
+:root[data-glass="black"] .ov-stage {
+  --color-text: #ffffff;
   --s-muted: rgba(255, 255, 255, 0.66);
   --s-faint: rgba(255, 255, 255, 0.5);
   --s-border: rgba(255, 255, 255, 0.1);
