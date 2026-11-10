@@ -60,10 +60,10 @@ export const LogDirectory: React.FC<LogDirectoryProps> = ({
     >
       {loading ? (
         <div className="animate-pulse">
-          <div className="h-8 bg-wash rounded" />
+          <div className="h-8 bg-wash rounded-[10px]" />
         </div>
       ) : error ? (
-        <div className="p-3 bg-error-wash border border-transparent rounded text-xs text-error">
+        <div className="p-3 bg-error-wash border border-transparent rounded-[10px] text-xs text-error">
           {t("errors.loadDirectory", { error })}
         </div>
       ) : (

@@ -51,8 +51,8 @@ export const AppDataDirectory: React.FC<AppDataDirectoryProps> = ({
   if (loading) {
     return (
       <div className="animate-pulse">
-        <div className="h-4 bg-line rounded w-1/3 mb-2"></div>
-        <div className="h-8 bg-wash rounded"></div>
+        <div className="h-4 bg-line rounded-full w-1/3 mb-2"></div>
+        <div className="h-8 bg-wash rounded-[10px]"></div>
       </div>
     );
   }

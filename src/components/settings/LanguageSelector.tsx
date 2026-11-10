@@ -210,7 +210,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         <div className="relative" ref={dropdownRef}>
           <button
             type="button"
-            className={`px-2 py-1 text-sm font-semibold bg-wash border border-line-strong rounded min-w-[200px] text-start flex items-center justify-between transition-all duration-150 ${
+            className={`px-2 py-1 text-sm font-semibold bg-wash border border-line-strong rounded-[10px] min-w-[200px] text-start flex items-center justify-between transition-all duration-150 ${
               isUpdating("selected_language")
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:bg-logo-primary/10 cursor-pointer hover:border-logo-primary"
@@ -237,7 +237,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           </button>
 
           {isOpen && !isUpdating("selected_language") && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-line-strong rounded shadow-lg z-50 max-h-60 overflow-hidden">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-background border border-line-strong rounded-[12px] shadow-lg z-50 max-h-60 overflow-hidden">
               {/* Search input */}
               <div className="p-2 border-b border-line-strong">
                 <input
@@ -247,7 +247,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
                   onChange={handleSearchChange}
                   onKeyDown={handleKeyDown}
                   placeholder={t("settings.general.language.searchPlaceholder")}
-                  className="w-full px-2 py-1 text-sm bg-wash border border-line rounded focus:outline-none focus:ring-1 focus:ring-logo-primary focus:border-logo-primary"
+                  className="w-full px-2 py-1 text-sm bg-wash border border-line rounded-[8px] focus:outline-none focus:ring-1 focus:ring-logo-primary focus:border-logo-primary"
                 />
               </div>
 
@@ -339,7 +339,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         />
       </div>
       {isUpdating("selected_language") && (
-        <div className="absolute inset-0 bg-wash rounded flex items-center justify-center">
+        <div className="absolute inset-0 bg-wash rounded-[10px] flex items-center justify-center">
           <div className="w-4 h-4 border-2 border-logo-primary border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
