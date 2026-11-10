@@ -102,6 +102,11 @@ pub fn resolve(app: &AppHandle, text: String) -> String {
     let kind = if choice == Choice::CleanUp { "clean" } else { "prompt" };
     let _ = app.emit_to("recording_overlay", "prompt-chip-working", kind);
     let result = rewrite(&system, &text);
+    // The rewrite can take several seconds; the person may have clicked
+    // around meanwhile. Bring the target app back and keep the result on the
+    // clipboard so a missed paste is never lost.
+    crate::clipboard::KEEP_NEXT_ON_CLIPBOARD.store(true, std::sync::atomic::Ordering::SeqCst);
+    let _ = crate::paste_guard::ensure_target_front();
     let _ = app.emit_to("recording_overlay", "prompt-chip-done", ());
     match result {
         Ok(out) if !out.trim().is_empty() => out.trim().to_string(),

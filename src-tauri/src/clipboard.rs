@@ -92,6 +92,11 @@ fn should_restore_clipboard(handling: ClipboardHandling) -> bool {
 
 /// Pastes text using the clipboard: saves current content, writes text, sends
 /// paste keystroke, and (unless `restore` is false) restores the clipboard.
+/// Set after a prompt rewrite: the next paste leaves the result on the
+/// clipboard, so if the app misses the paste, Cmd+V still gets it.
+pub static KEEP_NEXT_ON_CLIPBOARD: std::sync::atomic::AtomicBool =
+    std::sync::atomic::AtomicBool::new(false);
+
 fn paste_via_clipboard(
     text: &str,
     app_handle: &AppHandle,
@@ -100,6 +105,8 @@ fn paste_via_clipboard(
     paste_delay_after_ms: u64,
     restore: bool,
 ) -> Result<(), String> {
+    let restore = restore
+        && !KEEP_NEXT_ON_CLIPBOARD.swap(false, std::sync::atomic::Ordering::SeqCst);
     let clipboard = app_handle.clipboard();
     let saved_text = clipboard.read_text().ok().filter(|t| !t.is_empty());
     // Only probe for an image when there is no text to restore. Text is by far the

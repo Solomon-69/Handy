@@ -503,7 +503,7 @@
 .sbase.sbase-work {
   grid-template-columns: 1fr;
   justify-items: center;
-  height: 24px;
+  height: var(--ov-base-h);
   padding: 0 10px;
   min-width: 0;
 }
