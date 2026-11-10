@@ -301,6 +301,14 @@
 }
 /* The dot sits centred in a 22px box, the same size as the cancel button on
    the right, so both sides mirror and the waveform is exactly centred. */
+.sbase.sbase-work {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 0 16px;
+}
+.sbase-work .swork {
+  grid-column: 1;
+}
 .sbase-l {
   display: flex;
   width: 22px;

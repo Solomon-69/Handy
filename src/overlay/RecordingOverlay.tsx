@@ -444,15 +444,15 @@ const RecordingOverlay: React.FC = () => {
 
   // empty (left) | wordless animation (center) | cancel (right) — same 3-zone
   // grid as the listening row, so the animation is centered.
-  const workingRow = (label: string, kind: WorkKind, showCancel: boolean) => (
-    <div className="sbase">
-      <div className="sbase-l" />
+  // Working is over in a moment, so there is no cross: just the animation,
+  // exactly centred, with identical space on both sides.
+  const workingRow = (label: string, kind: WorkKind, _showCancel?: boolean) => (
+    <div className="sbase sbase-work">
       <WorkAnimation
         kind={kind}
         label={label}
         word={t("overlay.chip.prompting")}
       />
-      <div className="sbase-r">{showCancel && cancelBtn}</div>
     </div>
   );
 
