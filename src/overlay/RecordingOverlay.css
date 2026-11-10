@@ -301,10 +301,211 @@
 }
 /* The dot sits centred in a 22px box, the same size as the cancel button on
    the right, so both sides mirror and the waveform is exactly centred. */
+.sbase-work .swork {
+  grid-column: 1;
+}
+.sbase-l {
+  display: flex;
+  width: 22px;
+  justify-content: center;
+  align-items: center;
+  justify-self: start;
+}
+.sbase-r {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-self: end;
+}
+.sdot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  box-sizing: border-box;
+  transition:
+    background-color 180ms ease,
+    opacity 180ms ease;
+}
+.sdot.ready {
+  background: var(--s-accent);
+  opacity: 1;
+  animation: sdot-pulse 1.9s infinite;
+}
+/* A quiet neutral dot while the host has not delivered its first sample yet. */
+.sdot.arming {
+  background: var(--s-muted);
+  opacity: 0.45;
+  animation: none;
+}
+@keyframes sdot-pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--s-accent-soft);
+  }
+  70% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+.stimer {
+  font-size: 12px;
+  color: var(--s-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 240ms ease 80ms;
+}
+.scard.open {
+  --ov-side-w: 64px; /* timer + cross */
+}
+.scard.open .stimer {
+  opacity: 1;
+}
+
+/* Waveform — reactive only after the first microphone callback. While arming,
+   a muted travelling pulse acknowledges the shortcut without pretending that
+   audio levels are already being received. */
+.swave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  flex: none;
+}
+.swave i {
+  width: 4px;
+  min-height: 3px;
+  max-height: 20px;
+  border-radius: 2px;
+  background: var(--s-accent);
+  transition:
+    height 60ms ease-out,
+    background-color 180ms ease,
+    opacity 180ms ease;
+}
+.swave.arming i {
+  height: 6px !important;
+  background: var(--s-muted);
+  opacity: 0.35;
+  animation: swave-arming 900ms ease-in-out infinite;
+}
+.swave.arming i:nth-child(2),
+.swave.arming i:nth-child(8) {
+  animation-delay: 75ms;
+}
+.swave.arming i:nth-child(3),
+.swave.arming i:nth-child(7) {
+  animation-delay: 150ms;
+}
+.swave.arming i:nth-child(4),
+.swave.arming i:nth-child(6) {
+  animation-delay: 225ms;
+}
+.swave.arming i:nth-child(5) {
+  animation-delay: 300ms;
+}
+@keyframes swave-arming {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+    opacity: 0.25;
+  }
+  50% {
+    transform: scaleY(1.5);
+    opacity: 0.7;
+  }
+}
+.sx {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex: none;
+  padding: 0;
+  border: 0;
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--s-muted);
+  background: var(--s-hair);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    color 150ms ease,
+    transform 100ms ease;
+}
+.sx svg {
+  width: 9px;
+  height: 9px;
+  display: block;
+}
+.sx:hover {
+  background: var(--s-accent-soft);
+  color: var(--color-text);
+  transform: scale(1.05);
+}
+.sx:active {
+  transform: scale(0.95);
+}
+
+/* Accent swatches (Settings > Appearance). "default" keeps the app colour. */
+:root[data-accent="pink"] {
+  --s-accent: #f28cbb;
+}
+:root[data-accent="green"] {
+  --s-accent: #22a06b;
+}
+:root[data-accent="orange"] {
+  --s-accent: #f97316;
+}
+:root[data-accent="purple"] {
+  --s-accent: #8b5cf6;
+}
+:root[data-accent="graphite"] {
+  --s-accent: #6b7280;
+}
+:root[data-accent]:not([data-accent="default"]) {
+  --s-accent-soft: color-mix(in srgb, var(--s-accent) 20%, transparent);
+}
+
+/* Prompt engineer choice: same width as the working bar, three equal
+   buttons that lift slightly on hover; a thin countdown line underneath.
+   Nothing picked = paste as is. */
+.scard.compact.cchip {
+  width: var(--ov-chip-w);
+}
+/* Working pills hug their content: 48px for the dots, snug for "Prompting". */
+.scard.working,
+.scard.compact.cworking,
+.scard.compact.cchip:has(.sbase-work) {
+  width: 48px;
+}
+.scard.working:has(.swork-prompt),
+.scard.compact.cworking:has(.swork-prompt),
+.scard.compact.cchip:has(.swork-prompt) {
+  width: max-content;
+}
+.sbase {
+  position: relative;
+  min-width: min-content; /* never narrower than side + middle + side */
+  height: var(--ov-base-h);
+  flex: none; /* the control row never squashes; only the text region gives */
+  padding: 0 10px;
+  display: grid;
+  /* Equal side columns (min 22px to hold the cancel button) keep the center item
+     — waveform or label — centered whether the pill is at min width or content-
+     sized. */
+  grid-template-columns: minmax(var(--ov-side-w), 1fr) auto minmax(var(--ov-side-w), 1fr);
+  align-items: center;
+}
+/* The dot sits centred in a 22px box, the same size as the cancel button on
+   the right, so both sides mirror and the waveform is exactly centred. */
 .sbase.sbase-work {
   grid-template-columns: 1fr;
   justify-items: center;
-  padding: 0 16px;
+  height: 24px;
+  padding: 0 10px;
+  min-width: 0;
 }
 .sbase-work .swork {
   grid-column: 1;
@@ -479,12 +680,6 @@
 .scard.compact.cchip {
   width: var(--ov-chip-w);
 }
-/* "Prompting" needs a little more room than the dots, but not the chip's. */
-.scard.working:has(.swork-prompt),
-.scard.compact.cworking:has(.swork-prompt),
-.scard.compact.cchip:has(.swork-prompt) {
-  width: 164px;
-}
 .sbase.schip {
   position: relative;
   display: grid;
@@ -567,18 +762,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   pointer-events: none;
 }
 .swork i {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--s-accent);
-  animation: swork-dot 1.2s ease-in-out infinite;
+  animation: swork-dot 1s ease-in-out infinite;
 }
-.swork i:nth-child(2) { animation-delay: 0.2s; }
-.swork i:nth-child(3) { animation-delay: 0.4s; }
+.swork i:nth-child(2) { animation-delay: 0.15s; }
+.swork i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes swork-dot {
   0%, 100% { transform: scale(0.6); opacity: 0.4; }
   50% { transform: scale(1); opacity: 1; }
@@ -597,16 +792,23 @@
   height: 12px;
   flex: none;
   fill: #fff;
-  animation: sspark-glow 1.6s ease-in-out infinite;
+  /* Spin and pulse use separate properties, so both loop without a jump. */
+  animation:
+    sspark-spin 3.2s linear infinite,
+    sspark-pulse 1.6s ease-in-out infinite;
 }
-@keyframes sspark-glow {
+@keyframes sspark-spin {
+  from { rotate: 0deg; }
+  to { rotate: 90deg; } /* a four-point star looks the same every 90deg */
+}
+@keyframes sspark-pulse {
   0%, 100% {
-    transform: scale(0.75) rotate(0deg);
-    opacity: 0.7;
+    scale: 0.8;
+    opacity: 0.75;
     filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.4));
   }
   50% {
-    transform: scale(1.05) rotate(45deg);
+    scale: 1.05;
     opacity: 1;
     filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.9));
   }
@@ -615,16 +817,25 @@
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.45), #fff 50%, rgba(255, 255, 255, 0.45));
-  background-size: 250% 100%;
+  /* One repeating light band: the pattern is exactly one tile wide and the
+     animation moves it by exactly one tile, so the loop never jumps. */
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    #fff 50%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  background-size: 200% 100%;
+  background-repeat: repeat-x;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  animation: sprompt-shimmer 1.6s linear infinite;
+  will-change: background-position;
+  animation: sprompt-shimmer 2.2s linear infinite;
 }
 @keyframes sprompt-shimmer {
-  from { background-position: 120% 0; }
-  to { background-position: -120% 0; }
+  from { background-position: 0 0; }
+  to { background-position: 200% 0; }
 }
 
 /* Model loading: slower and quieter. */
