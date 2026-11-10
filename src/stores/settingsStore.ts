@@ -206,6 +206,8 @@ const settingUpdaters: {
     return appearance("overlay_accent", value);
   },
   overlay_opacity: (value) => appearance("overlay_opacity", value),
+  overlay_glass: (value) => appearance("overlay_glass", value),
+  black_theme: (value) => appearance("black_theme", value),
   prompt_chip_mode: (value) => appearance("prompt_chip_mode", value),
   prompt_chip_min_words: (value) => appearance("prompt_chip_min_words", value),
   voice_corrections_enabled: (value) =>

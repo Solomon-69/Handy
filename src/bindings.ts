@@ -1249,7 +1249,17 @@ overlay_accent?: string;
 /**
  * Bar opacity, 0.4 to 1.0.
  */
-overlay_opacity?: number; prompt_chip_mode?: PromptChipMode; 
+overlay_opacity?: number; 
+/**
+ * Bar glass look: "clear" (see-through, follows the theme) or "black"
+ * (black glass with white waveform and controls).
+ */
+overlay_glass?: string; 
+/**
+ * True black app theme (pure black backgrounds). Applied on top of
+ * `theme`, which is saved as Dark while this is on.
+ */
+black_theme?: boolean; prompt_chip_mode?: PromptChipMode; 
 /**
  * Dictations at least this many words long get the prompt chip.
  */

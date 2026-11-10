@@ -668,6 +668,14 @@ pub struct AppSettings {
     /// Bar opacity, 0.4 to 1.0.
     #[serde(default = "default_overlay_opacity")]
     pub overlay_opacity: f64,
+    /// Bar glass look: "clear" (see-through, follows the theme) or "black"
+    /// (black glass with white waveform and controls).
+    #[serde(default = "default_overlay_glass")]
+    pub overlay_glass: String,
+    /// True black app theme (pure black backgrounds). Applied on top of
+    /// `theme`, which is saved as Dark while this is on.
+    #[serde(default)]
+    pub black_theme: bool,
     #[serde(default = "default_prompt_chip_mode")]
     pub prompt_chip_mode: PromptChipMode,
     /// Dictations at least this many words long get the prompt chip.
@@ -704,6 +712,9 @@ fn default_voice_corrections_enabled() -> bool {
 
 /// Accent swatch ids the recording bar understands (see RecordingOverlay.css).
 pub const OVERLAY_ACCENTS: [&str; 6] = ["default", "pink", "green", "orange", "purple", "graphite"];
+
+/// Bar glass looks the recording bar understands (see RecordingOverlay.css).
+pub const OVERLAY_GLASSES: [&str; 2] = ["clear", "black"];
 
 /// Applies one Appearance / prompt-chip setting from its string form, with
 /// validation. Returns an error (and leaves `settings` untouched) on bad input.
@@ -743,6 +754,13 @@ pub fn apply_appearance_setting(
             settings.overlay_accent = value.to_string();
         }
         "overlay_opacity" => settings.overlay_opacity = parse_f64(value)?.clamp(0.4, 1.0),
+        "overlay_glass" => {
+            if !OVERLAY_GLASSES.contains(&value) {
+                return Err(format!("Unknown bar look '{value}'"));
+            }
+            settings.overlay_glass = value.to_string();
+        }
+        "black_theme" => settings.black_theme = parse_bool(value)?,
         "prompt_chip_mode" => {
             settings.prompt_chip_mode = match value {
                 "off" => PromptChipMode::Off,
@@ -865,6 +883,10 @@ fn default_overlay_accent() -> String {
 
 fn default_overlay_opacity() -> f64 {
     1.0
+}
+
+fn default_overlay_glass() -> String {
+    "clear".to_string()
 }
 
 fn default_prompt_chip_mode() -> PromptChipMode {
@@ -1405,6 +1427,8 @@ pub fn get_default_settings() -> AppSettings {
         overlay_size: default_overlay_size(),
         overlay_accent: default_overlay_accent(),
         overlay_opacity: default_overlay_opacity(),
+        overlay_glass: default_overlay_glass(),
+        black_theme: false,
         prompt_chip_mode: default_prompt_chip_mode(),
         prompt_chip_min_words: default_prompt_chip_min_words(),
         voice_corrections_enabled: default_voice_corrections_enabled(),

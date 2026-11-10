@@ -6,7 +6,7 @@
 # Usage: scripts/install-ci-build.sh <run-id>
 set -euo pipefail
 RUN_ID=${1:?run id}
-REPO=Solomon-69/Handy
+REPO=Solomon-69/Handy-build
 IDENTITY="Apple Development: solomond24@icloud.com (CCW242B7M5)"
 HERE=${0:A:h}
 WORK=$(mktemp -d)
