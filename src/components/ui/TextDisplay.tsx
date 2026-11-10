@@ -55,7 +55,7 @@ export const TextDisplay: React.FC<TextDisplayProps> = ({
       <div className="flex items-center space-x-2">
         <div className="flex-1 min-w-0">
           <div
-            className={`px-2 min-h-8 flex items-center bg-wash border border-line-strong rounded-md text-xs ${textClasses} ${!value ? "opacity-60" : ""}`}
+            className={`px-2 min-h-8 flex items-center bg-wash border border-line rounded-[10px] text-xs ${textClasses} ${!value ? "opacity-60" : ""}`}
           >
             {displayValue}
           </div>

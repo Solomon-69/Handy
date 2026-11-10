@@ -33,8 +33,8 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   );
 
   const containerClasses = grouped
-    ? "px-4 p-2"
-    : "px-4 p-2 rounded-lg border border-line";
+    ? "px-4 py-2.5"
+    : "px-4 py-2.5 rounded-[14px] border border-line bg-card";
 
   if (layout === "stacked") {
     if (descriptionMode === "tooltip") {
@@ -59,7 +59,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
           <h3 className={`text-sm font-medium ${disabled ? "opacity-50" : ""}`}>
             {title}
           </h3>
-          <p className={`text-sm ${disabled ? "opacity-50" : ""}`}>
+          <p className={`text-xs text-ink-2 ${disabled ? "opacity-50" : ""}`}>
             {description}
           </p>
         </div>
@@ -71,8 +71,8 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
   // Horizontal layout (default)
   const horizontalContainerClasses = `${
     grouped
-      ? "flex items-center justify-between min-h-12 px-4 p-2"
-      : "flex items-center justify-between min-h-12 px-4 p-2 rounded-lg border border-line"
+      ? "flex items-center justify-between min-h-11 px-4 py-1.5"
+      : "flex items-center justify-between min-h-11 px-4 py-1.5 rounded-[14px] border border-line bg-card"
   }${grow ? " gap-4" : ""}`;
   const titleClasses = grow ? "max-w-2/3 shrink-0" : "max-w-2/3";
   const controlClasses = grow
@@ -103,7 +103,7 @@ export const SettingContainer: React.FC<SettingContainerProps> = ({
         <h3 className={`text-sm font-medium ${disabled ? "opacity-50" : ""}`}>
           {title}
         </h3>
-        <p className={`text-sm ${disabled ? "opacity-50" : ""}`}>
+        <p className={`text-xs text-ink-2 ${disabled ? "opacity-50" : ""}`}>
           {description}
         </p>
       </div>

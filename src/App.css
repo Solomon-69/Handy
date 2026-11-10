@@ -9,6 +9,7 @@
   --color-text: var(--color-text);
   --color-background: var(--color-background);
   --color-background-ui: var(--color-background-ui);
+  --color-card: var(--color-card);
   --color-logo-primary: var(--color-logo-primary);
   --color-warning: var(--color-warning);
   --color-error: var(--color-error);
@@ -43,8 +44,12 @@
     ui-rounded, "SF Pro Rounded", system-ui, -apple-system,
     "Segoe UI Variable Display", "Segoe UI", sans-serif;
   --font-ui:
-    system-ui, -apple-system, "Segoe UI Variable Text", "Segoe UI", Roboto,
-    "Noto Sans", sans-serif;
+    "Atkinson Hyperlegible Next", system-ui, -apple-system,
+    "Segoe UI Variable Text", "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  /* Transcribed text (history, previews). */
+  --font-transcript:
+    "Atkinson Hyperlegible Next", "Handy CJK Subset", system-ui, -apple-system,
+    "Segoe UI", sans-serif;
   --font-cjk-subset:
     "Handy CJK Subset", -apple-system, "Segoe UI Variable Text", "Segoe UI",
     system-ui, sans-serif;
@@ -56,6 +61,14 @@
   --text-small: 13px; /* buttons, secondary text, hints */
   --text-label: 12px; /* labels */
   --text-tag: 11px; /* tags, column codes, small grade chips */
+
+  /* Softer corners everywhere (Settings redesign): no sharp squares. */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
 
   --radius-panel: 16px; /* panels, the selected card */
   --radius-card: 12px;
@@ -174,7 +187,8 @@
 }
 
 :root {
-  /* Typography */
+  /* Typography: Atkinson Hyperlegible Next across the whole settings app. */
+  font-family: var(--font-reading);
   font-size: 15px;
   line-height: 24px;
   font-weight: 400;
@@ -210,7 +224,8 @@
   color-scheme: light;
 }
 
-:root[data-theme="dark"] {
+:root[data-theme="dark"],
+:root[data-theme="black"] {
   color-scheme: dark;
 }
 
@@ -269,4 +284,42 @@
   fill: var(--color-wordmark-stroke);
   stroke: var(--color-wordmark-stroke);
   stroke-width: 1;
+}
+
+/* ============================================================
+   Settings redesign: soft cards, inset dividers, centred buttons.
+   ============================================================ */
+@layer base {
+  button {
+    text-align: center;
+  }
+  input,
+  select,
+  textarea {
+    border-radius: 10px;
+  }
+}
+
+/* Inset hairline between rows, like macOS System Settings. */
+.settings-rows > * + * {
+  background-image: linear-gradient(var(--color-line), var(--color-line));
+  background-size: calc(100% - 16px) 1px;
+  background-position: right top;
+  background-repeat: no-repeat;
+}
+[dir="rtl"] .settings-rows > * + * {
+  background-position: left top;
+}
+.settings-rows > :first-child {
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+.settings-rows > :last-child {
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+}
+
+:root[data-theme="black"] {
+  --color-log-surface: #0b0b0d;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
 }

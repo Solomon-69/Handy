@@ -50,7 +50,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   control: (base, state) => ({
     ...base,
     minHeight: 40,
-    borderRadius: 6,
+    borderRadius: 10,
     borderColor: state.isFocused ? "var(--color-logo-primary)" : neutralBorder,
     boxShadow: state.isFocused ? "0 0 0 1px var(--color-logo-primary)" : "none",
     backgroundColor: state.isFocused ? focusBackground : baseBackground,
@@ -92,10 +92,13 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   menu: (provided) => ({
     ...provided,
     zIndex: 30,
-    backgroundColor: "var(--color-background)",
     color: "var(--color-text)",
     border: "1px solid var(--color-line)",
-    boxShadow: "0 10px 30px rgba(15, 15, 15, 0.2)",
+    borderRadius: 12,
+    overflow: "hidden",
+    padding: 4,
+    backgroundColor: "var(--color-card)",
+    boxShadow: "0 12px 32px -8px rgba(15, 15, 15, 0.28), 0 2px 6px rgba(15, 15, 15, 0.08)",
   }),
   option: (base, state) => ({
     ...base,
@@ -104,6 +107,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
       : state.isFocused
         ? hoverBackground
         : "transparent",
+    borderRadius: 8,
     color: "var(--color-text)",
     cursor: state.isDisabled ? "not-allowed" : base.cursor,
     opacity: state.isDisabled ? 0.5 : 1,

@@ -1,6 +1,15 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Cog, FlaskConical, History, Info, Sparkles, Cpu } from "lucide-react";
+import {
+  Cog,
+  FlaskConical,
+  History,
+  Info,
+  Sparkles,
+  Cpu,
+  Wand2,
+  Palette,
+} from "lucide-react";
 import HandyTextLogo from "./icons/HandyTextLogo";
 import HandyHand from "./icons/HandyHand";
 import { useSettings } from "../hooks/useSettings";
@@ -11,6 +20,8 @@ import {
   AboutSettings,
   PostProcessingSettings,
   ModelsSettings,
+  SmartFeaturesSettings,
+  AppearanceSettings,
 } from "./settings";
 
 export type SidebarSection = keyof typeof SECTIONS_CONFIG;
@@ -36,6 +47,18 @@ export const SECTIONS_CONFIG = {
     labelKey: "sidebar.general",
     icon: HandyHand,
     component: GeneralSettings,
+    enabled: () => true,
+  },
+  smart: {
+    labelKey: "sidebar.smart",
+    icon: Wand2,
+    component: SmartFeaturesSettings,
+    enabled: () => true,
+  },
+  appearance: {
+    labelKey: "sidebar.appearance",
+    icon: Palette,
+    component: AppearanceSettings,
     enabled: () => true,
   },
   history: {
@@ -93,34 +116,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
     .map(([id, config]) => ({ id: id as SidebarSection, ...config }));
 
   return (
-    <div className="flex flex-col w-40 h-full border-e border-line items-center px-2">
-      <HandyTextLogo width={120} className="m-4" />
-      <div className="flex flex-col w-full items-center gap-1 pt-2 border-t border-line">
+    <nav className="flex flex-col w-48 h-full shrink-0 border-e border-line bg-card/60 px-3">
+      <HandyTextLogo width={112} className="mx-auto mt-5 mb-4" />
+      <div className="flex flex-col w-full gap-0.5">
         {availableSections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
 
           return (
-            <div
+            <button
+              type="button"
               key={section.id}
-              className={`flex gap-2 items-center p-2 w-full rounded-lg cursor-pointer transition-colors ${
+              aria-current={isActive ? "page" : undefined}
+              className={`flex min-h-[34px] w-full items-center gap-2.5 rounded-[10px] px-2.5 text-start outline-none transition-[background-color,color] duration-150 focus-visible:ring-2 focus-visible:ring-logo-primary/40 ${
                 isActive
-                  ? "bg-logo-primary/80"
-                  : "hover:bg-line hover:opacity-100 opacity-85"
+                  ? "bg-logo-primary text-white shadow-[0_1px_2px_rgba(0,0,0,0.12)]"
+                  : "text-text/85 hover:bg-wash hover:text-text"
               }`}
               onClick={() => onSectionChange(section.id)}
             >
-              <Icon width={24} height={24} className="shrink-0" />
-              <p
-                className="text-sm font-medium truncate"
+              <Icon width={18} height={18} className="shrink-0" />
+              <span
+                className="truncate text-[13px] font-medium"
                 title={t(section.labelKey)}
               >
                 {t(section.labelKey)}
-              </p>
-            </div>
+              </span>
+            </button>
           );
         })}
       </div>
-    </div>
+    </nav>
   );
 };

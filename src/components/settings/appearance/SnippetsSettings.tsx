@@ -4,9 +4,11 @@ import type { Snippet } from "@/bindings";
 import { useSettings } from "@/hooks/useSettings";
 import { SettingsGroup } from "../../ui/SettingsGroup";
 import { SettingContainer } from "../../ui/SettingContainer";
+import { BareGroup } from "../../ui/BareGroup";
 
 /** Spoken corrections toggle plus a small editor for snippets. */
-export const SnippetsSettings: React.FC = () => {
+/** `bare` drops the titled card so a parent (Smart features) can frame it. */
+export const SnippetsSettings: React.FC<{ bare?: boolean }> = ({ bare = false }) => {
   const { t } = useTranslation();
   const { settings, updateSetting } = useSettings();
   const [rows, setRows] = useState<Snippet[]>([]);
@@ -23,10 +25,12 @@ export const SnippetsSettings: React.FC = () => {
     setRows((prev) => prev.map((r, k) => (k === i ? { ...r, ...patch } : r)));
 
   const field =
-    "min-h-[30px] rounded-[8px] bg-wash px-2 text-xs outline-none focus:outline-none";
+    "min-h-[30px] rounded-[10px] bg-wash px-2 text-xs outline-none focus:outline-none";
+
+  const Group = bare ? BareGroup : SettingsGroup;
 
   return (
-    <SettingsGroup title={t(`${b}.title`)}>
+    <Group title={t(`${b}.title`)}>
       <SettingContainer
         title={t(`${b}.list.title`)}
         description={t(`${b}.list.description`)}
@@ -60,7 +64,7 @@ export const SnippetsSettings: React.FC = () => {
                   setRows(next);
                   save(next);
                 }}
-                className="h-[30px] w-[30px] rounded-[8px] text-center text-ink-2 hover:bg-wash active:scale-[0.97] outline-none focus:outline-none"
+                className="h-[30px] w-[30px] rounded-[10px] text-center text-ink-2 hover:bg-wash active:scale-[0.97] outline-none focus:outline-none"
               >
                 ×
               </button>
@@ -69,12 +73,12 @@ export const SnippetsSettings: React.FC = () => {
           <button
             type="button"
             onClick={() => setRows((prev) => [...prev, { trigger: "", text: "" }])}
-            className="self-start min-h-[30px] px-3 rounded-[8px] bg-wash text-xs font-medium text-center hover:bg-line active:scale-[0.97] outline-none focus:outline-none"
+            className="self-start min-h-[30px] px-3 rounded-[10px] bg-wash text-xs font-medium text-center hover:bg-line active:scale-[0.97] outline-none focus:outline-none"
           >
             {t(`${b}.add`)}
           </button>
         </div>
       </SettingContainer>
-    </SettingsGroup>
+    </Group>
   );
 };

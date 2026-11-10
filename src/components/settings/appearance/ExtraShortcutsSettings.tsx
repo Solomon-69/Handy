@@ -7,14 +7,13 @@ import { SettingsGroup } from "../../ui/SettingsGroup";
 import { ToggleSwitch } from "../../ui/ToggleSwitch";
 import { ShortcutInput } from "../ShortcutInput";
 
-/** Optional shortcuts: paste last dictation and Command Mode (both off by default). */
+/** Optional shortcut: paste last dictation (off by default). Command Mode lives in Smart features. */
 export const ExtraShortcutsSettings: React.FC = () => {
   const { t } = useTranslation();
   const { settings, updateSetting } = useSettings();
   if (!settings) return null;
   const b = "settings.extraShortcuts";
   const pasteLast = settings.paste_last_shortcut_enabled ?? false;
-  const commandMode = settings.command_mode_enabled ?? false;
 
   const pasteNow = async () => {
     const result = await commands.pasteLastDictation();
@@ -35,19 +34,11 @@ export const ExtraShortcutsSettings: React.FC = () => {
         <button
           type="button"
           onClick={pasteNow}
-          className="min-h-[30px] px-3 rounded-[8px] bg-wash text-xs font-medium text-center hover:bg-line transition-transform duration-150 active:scale-[0.97] outline-none focus:outline-none"
+          className="min-h-[30px] px-3 rounded-[10px] bg-wash text-xs font-medium text-center hover:bg-line transition-transform duration-150 active:scale-[0.97] outline-none focus:outline-none"
         >
           {t(`${b}.pasteNow`)}
         </button>
       </div>
-      <ToggleSwitch
-        checked={commandMode}
-        onChange={(v) => updateSetting("command_mode_enabled", v)}
-        label={t(`${b}.commandMode.title`)}
-        description={t(`${b}.commandMode.description`)}
-        grouped={true}
-      />
-      {commandMode && <ShortcutInput shortcutId="command_mode" grouped={true} />}
     </SettingsGroup>
   );
 };

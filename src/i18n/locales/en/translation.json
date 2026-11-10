@@ -19,7 +19,9 @@
     "postProcessing": "Post Process",
     "history": "History",
     "debug": "Debug",
-    "about": "About"
+    "about": "About",
+    "smart": "Smart features",
+    "appearance": "Appearance"
   },
   "onboarding": {
     "customModelDescription": "Not officially supported",
@@ -970,7 +972,19 @@
         "cleanUp": "Clean up",
         "unavailable": "Apple Intelligence is not available on this Mac, so the text was pasted as is"
       },
-      "sample": "Hello, this is how your words appear"
+      "sample": "Hello, this is how your words appear",
+      "glass": {
+        "title": "Bar look",
+        "description": "Clear glass follows your theme and accent colour. Black glass is dark see-through glass with a white waveform and white controls.",
+        "clear": "Clear glass",
+        "black": "Black glass"
+      },
+      "sections": {
+        "app": "App",
+        "bar": "Recording bar",
+        "barLook": "Look",
+        "barPlace": "Size and place"
+      }
     },
     "snippets": {
       "title": "Snippets",
@@ -1023,6 +1037,41 @@
       "streak": "Day streak",
       "noValue": "–",
       "note": "Counted from your saved history on this Mac."
+    },
+    "smart": {
+      "title": "Smart features",
+      "intro": "Everything that makes dictation feel effortless. Each one runs on this Mac.",
+      "example": "Example",
+      "handsFree": {
+        "title": "Hands-free",
+        "what": "Hold the shortcut to talk, or tap it once and keep talking until you press it again.",
+        "example": "Tap the shortcut, talk for a minute, tap again to finish."
+      },
+      "dictionary": {
+        "title": "Personal dictionary",
+        "what": "Names and words Handy should always spell your way.",
+        "example": "Add “Kubernetes” and it stops writing “cube in eighties”."
+      },
+      "snippets": {
+        "title": "Snippets",
+        "what": "Say a short trigger phrase and Handy pastes the saved text instead.",
+        "example": "Say “my address” and Handy types your full address."
+      },
+      "appStyles": {
+        "title": "Styles per app",
+        "what": "Pick a tone for each app, so the same words come out right in each place.",
+        "example": "Formal in Mail, casual in Slack, code-friendly in your editor."
+      },
+      "commandMode": {
+        "title": "Command mode",
+        "what": "Select text, hold the Command Mode shortcut and say what to change.",
+        "example": "Select a paragraph and say “make this shorter”."
+      },
+      "prompt": {
+        "title": "Smart prompt mode",
+        "what": "Turns a long, rambling dictation into a clear, well-organised prompt for AI apps.",
+        "example": "Say “turn this into a prompt” at any time to force it, whatever the mode."
+      }
     }
   },
   "footer": {
@@ -1091,11 +1140,12 @@
   },
   "theme": {
     "title": "Application Theme",
-    "description": "Choose whether Handy follows your system theme or stays light or dark",
+    "description": "Follow your system, or stay light, dark or true black",
     "options": {
       "system": "System",
       "light": "Light",
-      "dark": "Dark"
+      "dark": "Dark",
+      "black": "Black"
     }
   },
   "overlay": {
