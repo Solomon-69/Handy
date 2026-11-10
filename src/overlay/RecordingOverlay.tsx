@@ -51,7 +51,8 @@ function shapeWave(raw: number[], peakRef: { current: number }): number[] {
   );
   const mid = (raw.length - 1) / 2;
   return raw.map((v, i) => {
-    const centre = 0.6 + 0.4 * Math.cos(((i - mid) / (mid + 1)) * (Math.PI / 2));
+    const centre =
+      0.6 + 0.4 * Math.cos(((i - mid) / (mid + 1)) * (Math.PI / 2));
     return Math.min(1, (v / peakRef.current) * centre);
   });
 }
@@ -81,7 +82,37 @@ const applyAppearance = (settings: AppSettings) => {
   root.style.setProperty("--ov-scale", String(OVERLAY_SCALE[size] ?? 0.92));
   root.style.setProperty("--ov-opacity", String(settings.overlay_opacity ?? 1));
   root.dataset.accent = settings.overlay_accent ?? "default";
+  root.dataset.glass = settings.overlay_glass ?? "clear";
 };
+
+/** Which wordless working animation to show. */
+type WorkKind = "transcribe" | "prompt" | "load";
+
+/** Five little bars: a travelling wave (transcribing / cleaning), a slow
+ *  breathing row (model loading), or a wave with a twinkling spark (prompt
+ *  engineering). The label stays as the accessible name and tooltip. */
+const WorkAnimation: React.FC<{ kind: WorkKind; label: string }> = ({
+  kind,
+  label,
+}) => (
+  <span
+    className={`swork swork-${kind}`}
+    role="status"
+    aria-label={label}
+    title={label}
+  >
+    <i />
+    <i />
+    <i />
+    <i />
+    <i />
+    {kind === "prompt" && (
+      <svg className="sspark" viewBox="0 0 12 12" aria-hidden="true">
+        <path d="M6 0.5 C6.5 4 8 5.5 11.5 6 C8 6.5 6.5 8 6 11.5 C5.5 8 4 6.5 0.5 6 C4 5.5 5.5 4 6 0.5 Z" />
+      </svg>
+    )}
+  </span>
+);
 
 const RecordingOverlay: React.FC = () => {
   const { t } = useTranslation();
@@ -200,10 +231,13 @@ const RecordingOverlay: React.FC = () => {
         },
       );
 
-      const unlistenAppearance = await listen("appearance-changed", async () => {
-        const settings = await commands.getAppSettings();
-        if (settings.status === "ok") applyAppearance(settings.data);
-      });
+      const unlistenAppearance = await listen(
+        "appearance-changed",
+        async () => {
+          const settings = await commands.getAppSettings();
+          if (settings.status === "ok") applyAppearance(settings.data);
+        },
+      );
 
       const unlistenHide = await listen("hide-overlay", () => {
         setIsVisible(false);
@@ -401,12 +435,12 @@ const RecordingOverlay: React.FC = () => {
     </div>
   );
 
-  // spinner (left) | label (center) | cancel (right) — same 3-zone grid as the
-  // listening row, so the label is centered.
-  const workingRow = (label: string, showCancel: boolean) => (
+  // empty (left) | wordless animation (center) | cancel (right) — same 3-zone
+  // grid as the listening row, so the animation is centered.
+  const workingRow = (label: string, kind: WorkKind, showCancel: boolean) => (
     <div className="sbase">
       <div className="sbase-l" />
-      <span className="swork-label">{label}</span>
+      <WorkAnimation kind={kind} label={label} />
       <div className="sbase-r">{showCancel && cancelBtn}</div>
     </div>
   );
@@ -424,20 +458,36 @@ const RecordingOverlay: React.FC = () => {
       chipWork === "clean"
         ? t("overlay.chip.cleaning")
         : t("overlay.chip.engineering"),
+      chipWork === "clean" ? "transcribe" : "prompt",
       false,
     );
   const chipRow = chip && (
     <div className="sbase schip">
-      <button className="schip-b" title={t("settings.appearance.promptChip.pasteAsIs")} onClick={() => choose("paste")}>
+      <button
+        className="schip-b"
+        title={t("settings.appearance.promptChip.pasteAsIs")}
+        onClick={() => choose("paste")}
+      >
         {t("overlay.chip.asIs")}
       </button>
-      <button className="schip-b primary" title={t("settings.appearance.promptChip.turnIntoPrompt")} onClick={() => choose("prompt")}>
+      <button
+        className="schip-b primary"
+        title={t("settings.appearance.promptChip.turnIntoPrompt")}
+        onClick={() => choose("prompt")}
+      >
         {t("overlay.chip.prompt")}
       </button>
-      <button className="schip-b" title={t("settings.appearance.promptChip.cleanUp")} onClick={() => choose("clean")}>
+      <button
+        className="schip-b"
+        title={t("settings.appearance.promptChip.cleanUp")}
+        onClick={() => choose("clean")}
+      >
         {t("overlay.chip.clean")}
       </button>
-      <span className="schip-timer" style={{ animationDuration: `${chip.timeout_ms}ms` }} />
+      <span
+        className="schip-timer"
+        style={{ animationDuration: `${chip.timeout_ms}ms` }}
+      />
     </div>
   );
 
@@ -521,17 +571,20 @@ const RecordingOverlay: React.FC = () => {
           {chipWorkRow
             ? chipWorkRow
             : chipRow
-            ? chipRow
-            : liveNotice
-            ? noticeRow
-            : working
-              ? workingRow(
-                  workKind === "polishing"
-                    ? t("overlay.processing")
-                    : transcribingLabel,
-                  true,
-                )
-              : listeningRow(open, true)}
+              ? chipRow
+              : liveNotice
+                ? noticeRow
+                : working
+                  ? workingRow(
+                      workKind === "polishing"
+                        ? t("overlay.processing")
+                        : transcribingLabel,
+                      modelLoading && workKind !== "polishing"
+                        ? "load"
+                        : "transcribe",
+                      true,
+                    )
+                  : listeningRow(open, true)}
         </div>
       </div>
     );
@@ -558,12 +611,18 @@ const RecordingOverlay: React.FC = () => {
         {chipWorkRow
           ? chipWorkRow
           : chipRow
-          ? chipRow
-          : shownNotice
-          ? noticeRow
-          : working
-            ? workingRow(workLabel, true)
-            : listeningRow(false, true)}
+            ? chipRow
+            : shownNotice
+              ? noticeRow
+              : working
+                ? workingRow(
+                    workLabel,
+                    modelLoading && state !== "processing"
+                      ? "load"
+                      : "transcribe",
+                    true,
+                  )
+                : listeningRow(false, true)}
       </div>
     </div>
   );

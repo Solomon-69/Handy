@@ -1,32 +1,39 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import { Dropdown } from "../ui/Dropdown";
 import { SettingContainer } from "../ui/SettingContainer";
+import { SegmentedControl } from "./appearance/SegmentedControl";
 import { useSettings } from "@/hooks/useSettings";
-import { applyTheme, THEME_OPTIONS } from "@/lib/utils/theme";
-import type { Theme } from "@/bindings";
+import {
+  applyTheme,
+  resolveTheme,
+  THEME_OPTIONS,
+  type AppTheme,
+} from "@/lib/utils/theme";
 
 interface ThemeSelectorProps {
   descriptionMode?: "inline" | "tooltip";
   grouped?: boolean;
 }
 
+/** System / Light / Dark / Black. Black is saved as Dark plus `black_theme`. */
 export const ThemeSelector: React.FC<ThemeSelectorProps> = React.memo(
   ({ descriptionMode = "tooltip", grouped = false }) => {
     const { t } = useTranslation();
     const { settings, updateSetting } = useSettings();
 
-    const currentTheme: Theme = settings?.theme ?? "system";
+    const current = resolveTheme(settings?.theme, settings?.black_theme);
 
-    const themeOptions = THEME_OPTIONS.map((value) => ({
+    const options = THEME_OPTIONS.map((value) => ({
       value,
       label: t(`theme.options.${value}`),
     }));
 
-    const handleThemeChange = (value: string) => {
-      const theme = value as Theme;
-      applyTheme(theme);
-      updateSetting("theme", theme);
+    const handleChange = async (value: string) => {
+      const next = value as AppTheme;
+      applyTheme(next);
+      const black = next === "black";
+      await updateSetting("black_theme", black);
+      await updateSetting("theme", black ? "dark" : next);
     };
 
     return (
@@ -36,10 +43,11 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = React.memo(
         descriptionMode={descriptionMode}
         grouped={grouped}
       >
-        <Dropdown
-          options={themeOptions}
-          selectedValue={currentTheme}
-          onSelect={handleThemeChange}
+        <SegmentedControl
+          ariaLabel={t("theme.title")}
+          options={options}
+          value={current}
+          onChange={handleChange}
         />
       </SettingContainer>
     );

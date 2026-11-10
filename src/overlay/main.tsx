@@ -7,7 +7,6 @@ import {
   getStoredTheme,
   syncThemeFromSettings,
 } from "@/lib/utils/theme";
-import type { Theme } from "@/bindings";
 import "@/i18n";
 
 // A separate webview from the settings window, so the overlay has to set
@@ -16,7 +15,8 @@ import "@/i18n";
 // the overlay booted first, then follow live changes.
 applyTheme(getStoredTheme());
 syncThemeFromSettings();
-listen<Theme>("theme-changed", (event) => applyTheme(event.payload));
+// Re-read settings so a true-black choice (stored beside `theme`) survives.
+listen("theme-changed", () => syncThemeFromSettings());
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
