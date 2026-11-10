@@ -1,3 +1,4 @@
+import "./dev/mockTauri";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { platform } from "@tauri-apps/plugin-os";
