@@ -16,8 +16,39 @@ pub enum Detected {
     Normal,
 }
 
-/// Fewer words than this are never rewritten.
+/// Fewer words than this are never rewritten on wording alone.
 const MIN_WORDS: usize = 50;
+/// In an AI app, text this long is rewritten when the wording is clearly a prompt.
+const MIN_WORDS_CLEAR: usize = 30;
+/// Score that counts as "clearly a prompt" (app bonus included).
+const THRESHOLD_CLEAR: i32 = 7;
+
+/// Spoken commands that always turn the dictation into a prompt, wherever
+/// they are said ("... turn this into a prompt").
+static TRIGGER: once_cell::sync::Lazy<regex::Regex> = once_cell::sync::Lazy::new(|| {
+    regex::Regex::new(
+        r"(?i)[,.;:!?]?\s*\b(?:(?:please|and|okay|ok|so)\s+)?(?:(?:turn|make|convert|change|rewrite)\s+(?:this|that|it|all\s+this|all\s+of\s+this|the\s+above)\s+(?:into\s+|in\s+to\s+|as\s+)?(?:a\s+)?(?:proper\s+|good\s+|clear\s+)?prompt|prompt[\s-]+engineer\s+(?:this|that|it))(?:\s+please)?\b[,.;:!?]?",
+    )
+    .expect("trigger regex")
+});
+
+/// If the speaker asked for a prompt out loud, returns the text without that
+/// command. None when no command was spoken.
+pub fn spoken_trigger(text: &str) -> Option<String> {
+    if !TRIGGER.is_match(text) {
+        return None;
+    }
+    let cleaned = TRIGGER.replace_all(text, " ");
+    let cleaned = cleaned.split_whitespace().collect::<Vec<_>>().join(" ");
+    let cleaned = cleaned
+        .trim_matches(|c: char| c == ',' || c == ';' || c == ':' || c.is_whitespace())
+        .to_string();
+    if cleaned.is_empty() {
+        None
+    } else {
+        Some(cleaned)
+    }
+}
 /// Score needed in an AI app (the app already counts for +3).
 const THRESHOLD_AI_APP: i32 = 5;
 /// Score needed anywhere else (higher, so wording alone rarely wins).
@@ -126,15 +157,22 @@ pub fn wording_score(text: &str) -> i32 {
 
 /// Decide for a dictation going into the app with this bundle id.
 pub fn detect(text: &str, bundle_id: Option<&str>) -> Detected {
-    if words(text).len() < MIN_WORDS {
-        return Detected::Normal;
+    if spoken_trigger(text).is_some() {
+        return Detected::Prompt;
     }
+    let n = words(text).len();
     let app = bundle_id.unwrap_or("").to_lowercase();
     if PEOPLE_APPS.contains(&app.as_str()) {
         return Detected::Normal;
     }
     let in_ai_app = AI_APPS.contains(&app.as_str());
     let score = wording_score(text) + if in_ai_app { 3 } else { 0 };
+    if in_ai_app && n >= MIN_WORDS_CLEAR && score >= THRESHOLD_CLEAR {
+        return Detected::Prompt;
+    }
+    if n < MIN_WORDS {
+        return Detected::Normal;
+    }
     let needed = if in_ai_app { THRESHOLD_AI_APP } else { THRESHOLD_OTHER_APP };
     if score >= needed {
         Detected::Prompt
@@ -190,6 +228,31 @@ mod tests {
             and a short explanation of the function, then test the code and fix anything that breaks \
             and keep it simple and readable for everyone on the team please";
         assert_eq!(detect(strong, SAFARI), Detected::Prompt);
+    }
+
+    #[test]
+    fn spoken_command_always_makes_a_prompt() {
+        let said = "look at the settings page and make the toggles slide, turn this into a prompt";
+        assert_eq!(detect(said, MAIL), Detected::Prompt);
+        assert_eq!(
+            spoken_trigger(said).as_deref(),
+            Some("look at the settings page and make the toggles slide")
+        );
+        assert_eq!(
+            spoken_trigger("Make this a prompt. Fix the login bug and add tests").as_deref(),
+            Some("Fix the login bug and add tests")
+        );
+        assert_eq!(spoken_trigger("prompt engineer this please, build a timer app").as_deref(), Some("build a timer app"));
+        assert_eq!(spoken_trigger("I wrote a prompt for the team yesterday"), None);
+        assert_eq!(spoken_trigger("turn this into a prompt"), None, "nothing left to rewrite");
+    }
+
+    #[test]
+    fn clear_prompt_of_30_words_in_ai_app() {
+        let clear = "I want you to build a settings screen for the app, make sure the toggle component slides \
+            smoothly and the output must use the existing button code and test every step";
+        assert_eq!(detect(clear, CLAUDE), Detected::Prompt);
+        assert_eq!(detect(clear, SAFARI), Detected::Normal);
     }
 
     #[test]
