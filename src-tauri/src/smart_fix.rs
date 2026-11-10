@@ -14,7 +14,11 @@ const CUES: &[&str] = &[
 ];
 
 const MIN_WORDS: usize = 5;
-const MAX_WORDS: usize = 250;
+/// Longer text is left to the free rules: the on-device model took about
+/// 8 s on a 70-word dictation, which made every long dictation feel slow.
+const MAX_WORDS: usize = 45;
+/// Never wait longer than this for the model; keep the text as it was.
+const MODEL_TIMEOUT_MS: u64 = 1800;
 
 pub const INSTRUCTION: &str = "You clean up dictated speech. The user message is a transcript. \
 People change their mind or repeat themselves while talking. Rewrite it so only the final, intended version remains: \
@@ -80,12 +84,41 @@ fn acceptable(original: &str, fixed: &str) -> bool {
     f.iter().all(|x| o.contains(x))
 }
 
+/// Removes a word said twice in a row ("the the shop"), for free.
+pub fn drop_double_words(text: &str) -> String {
+    let mut out: Vec<&str> = Vec::new();
+    for w in text.split_whitespace() {
+        if let Some(prev) = out.last() {
+            let a: String = prev.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect();
+            let b: String = w.chars().filter(|c| c.is_alphanumeric()).flat_map(char::to_lowercase).collect();
+            let plain_prev = prev.chars().all(|c| c.is_alphanumeric() || c == '\'');
+            const KEEP: &[&str] = &["that", "had", "no", "bye", "very", "so", "ha", "really", "now", "go"];
+            if a == b && a.len() > 1 && !KEEP.contains(&a.as_str()) && plain_prev {
+                out.pop();
+            }
+        }
+        out.push(w);
+    }
+    out.join(" ")
+}
+
+fn rewrite_with_timeout(text: &str) -> Result<String, String> {
+    let (tx, rx) = std::sync::mpsc::channel();
+    let owned = text.to_string();
+    std::thread::spawn(move || {
+        let _ = tx.send(crate::prompt_chip::rewrite(INSTRUCTION, &owned));
+    });
+    rx.recv_timeout(std::time::Duration::from_millis(MODEL_TIMEOUT_MS))
+        .map_err(|_| format!("model slower than {MODEL_TIMEOUT_MS} ms"))?
+}
+
 /// Returns the fixed text, or the original when no fix is needed or possible.
 pub fn apply(text: &str) -> String {
+    let text = &drop_double_words(text);
     if !needs_fix(text) {
         return text.to_string();
     }
-    match crate::prompt_chip::rewrite(INSTRUCTION, text) {
+    match rewrite_with_timeout(text) {
         Ok(out) => {
             let out = out.trim().trim_matches('"').trim().to_string();
             if acceptable(text, &out) {
@@ -112,6 +145,8 @@ mod tests {
         assert!(needs_fix("I like strawberries or oh I want bananas"));
         assert!(needs_fix("we should meet on Tuesday no wait Wednesday afternoon"));
         assert!(needs_fix("I went to the the shop yesterday afternoon"));
+        assert_eq!(drop_double_words("I went to the the shop"), "I went to the shop");
+        assert_eq!(drop_double_words("I had had enough, that that is it"), "I had had enough, that that is it");
         assert!(needs_fix("send the report to the team send the report to the team today"));
     }
 
